@@ -6,7 +6,7 @@ import (
 	"hash"
 	"crypto/sha256"
 	"crypto/sha512"
-//	"fmt"
+	"fmt"
 )
 
 type Hash struct {
@@ -38,7 +38,7 @@ func EvalHash(s sexprs.Sexp) (h Hash, err error) {
 	// FIXME: ignores optional URIs
 	switch s := s.(type) {
 	case sexprs.List:
-		if HashAtom.Equal(s[0]) && len(s) >= 3 {
+		if len(s) >= 3 && HashAtom.Equal(s[0]) {
 			algorithm, alg_ok := s[1].(sexprs.Atom)
 			value, val_ok := s[2].(sexprs.Atom)
 			if alg_ok && val_ok && validHash(algorithm.Value) {
@@ -47,7 +47,7 @@ func EvalHash(s sexprs.Sexp) (h Hash, err error) {
 			}
 		}
 	}
-	return Hash{}, nil
+	return Hash{}, fmt.Errorf("Invalid hash expression")
 }
 
 func validHash(b []byte) bool {

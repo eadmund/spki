@@ -20,7 +20,11 @@ func TestHash(t *testing.T) {
 	}
 	h1, err = EvalHash(sexp)
 	if err != nil {
-		t.Fatal("Error evaluation hash S-expression", err)
+		t.Fatal("Error evaluating hash S-expression", err)
+	}
+	h1, err = EvalHash(sexprs.List{})
+	if err == nil {
+		t.Fatal("EvalHash didn't return an error when passed an empty list", h1)
 	}
 	//t.Log(h1.Sexp())
 	//t.Log(h.Sexp())
