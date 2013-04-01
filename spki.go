@@ -7,11 +7,13 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"fmt"
+	"net/url"
 )
 
 type Hash struct {
 	Algorithm string
 	Hash []byte
+	URIs []url.URL
 }
 
 func (h Hash) Sexp() sexprs.Sexp {
@@ -43,7 +45,7 @@ func EvalHash(s sexprs.Sexp) (h Hash, err error) {
 			value, val_ok := s[2].(sexprs.Atom)
 			if alg_ok && val_ok && validHash(algorithm.Value) {
 				return Hash{string(algorithm.Value), 
-					value.Value}, nil
+					value.Value, nil}, nil
 			}
 		}
 	}
