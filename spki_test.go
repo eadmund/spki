@@ -1,10 +1,10 @@
 package spki
 
 import (
-	"crypto/sha256"
 	"crypto/ecdsa"
-	"crypto/rand"
 	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/sha256"
 	"github.com/eadmund/sexprs"
 	"testing"
 )
