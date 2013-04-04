@@ -2,6 +2,9 @@ package spki
 
 import (
 	"crypto/sha256"
+	"crypto/ecdsa"
+	"crypto/rand"
+	"crypto/elliptic"
 	"github.com/eadmund/sexprs"
 	"testing"
 )
@@ -36,4 +39,50 @@ func TestHash(t *testing.T) {
 	}
 	//t.Log(h1.URIs)
 	//t.Log(h.Sexp())
+}
+
+func TestECDSA256Key(t *testing.T) {
+	sexp, _, err := sexprs.ReadBytes([]byte("(public-key (ecdsa-sha2 (curve p256) (x #deadbeef#) (y #f00f#)))"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	key, err := EvalPublicKey(sexp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = key
+	//t.Log(key)
+}
+
+func TestECDSASHA2PrivateKey(t *testing.T) {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	spki_key := PrivateKey{*key}
+	//t.Log(spki_key.String())
+	string_key, _, err := sexprs.ReadBytes([]byte(spki_key.String()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	byte_key, _, err := sexprs.ReadBytes(spki_key.Sexp().Pack())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !string_key.Equal(byte_key) {
+		t.Fatal("String- and byte-read keys differ")
+	}
+	eval_key, err := EvalPrivateKey(string_key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if key.X.Cmp(eval_key.X) != 0 {
+		t.Fatal("Differing X: %s vs. %x", key.X, eval_key.X)
+	}
+	if key.Y.Cmp(eval_key.Y) != 0 {
+		t.Fatal("Differing X: %s vs. %x", key.Y, eval_key.Y)
+	}
+	if key.D.Cmp(eval_key.D) != 0 {
+		t.Fatal("Differing X: %s vs. %x", key.D, eval_key.D)
+	}
 }
