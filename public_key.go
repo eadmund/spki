@@ -104,3 +104,34 @@ func evalCurve(l sexprs.Sexp) (curve string, err error) {
 	}
 	panic("Can't get here")
 }
+
+func (k PublicKey) Sexp() (s sexprs.Sexp) {
+	var curve sexprs.Atom
+	switch k.Curve {
+	case elliptic.P256():
+		curve.Value = []byte("p256")
+	case elliptic.P384():
+		curve.Value = []byte("p384")
+	default:
+		panic(fmt.Sprintf("Bad curve value %v", k.Curve))
+	}
+	return sexprs.List{
+		sexprs.Atom{Value: []byte("public-key")},
+		sexprs.List{
+			sexprs.Atom{Value: []byte("ecdsa-sha2")},
+			sexprs.List{
+				sexprs.Atom{Value: []byte("curve")},
+				curve,
+			},
+			sexprs.List{
+				sexprs.Atom{Value: []byte("x")},
+				sexprs.Atom{Value: k.X.Bytes()},
+			},
+			sexprs.List{
+				sexprs.Atom{Value: []byte("y")},
+				sexprs.Atom{Value: k.Y.Bytes()},
+			},
+
+		},
+	}
+}

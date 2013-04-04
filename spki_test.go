@@ -86,3 +86,16 @@ func TestECDSASHA2PrivateKey(t *testing.T) {
 		t.Fatal("Differing X: %s vs. %x", key.D, eval_key.D)
 	}
 }
+
+func TestSignature(t *testing.T) {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	spki_key := PrivateKey{*key}
+	sig, err := spki_key.Sign(spki_key.Sexp())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(sig.String())
+}

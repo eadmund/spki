@@ -102,3 +102,30 @@ func EvalSignature(s sexprs.Sexp, lookupFunc func(Hash) *PublicKey) (sig *Signat
 	}
 	return sig, nil
 }
+
+// Sexp returns an S-expression fully representing sig
+func (sig *Signature) Sexp() sexprs.Sexp {
+	l := sexprs.List{
+		sexprs.Atom{Value: []byte("signature")},
+		sig.Hash.Sexp(),
+		sig.Principal.Sexp(),
+		sexprs.List{
+			sexprs.Atom{Value: []byte("ecdsa-sha2")},
+			sexprs.List{
+				sexprs.Atom{Value: []byte("r")},
+				sexprs.Atom{Value: sig.R.Bytes()},
+			},
+			sexprs.List{
+				sexprs.Atom{Value: []byte("s")},
+				sexprs.Atom{Value: sig.S.Bytes()},
+			},
+		},
+	}
+	return l
+
+}
+
+// String is a shortcut for sig.Sexp().String()
+func (sig *Signature) String() string {
+	return sig.Sexp().String()
+}
