@@ -9,7 +9,7 @@
 // its advantages are a clearer & more practical trust model and a
 // rather more human-readable certificate format.
 //
-// I'm indebted to Inferno's spki(2), whose API I have deliberately,
+// I'm indebted to Inferno's spki(2), whose API I have deliberately
 // mimicked, making it more Go-like as seemed meet.
 package spki
 

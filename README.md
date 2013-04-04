@@ -9,7 +9,7 @@ X.509 certificate standard ubiquitous across the Internet.  Among
 its advantages are a clearer & more practical trust model and a
 rather more human-readable certificate format.
 
-I'm indebted to Inferno's spki(2), whose API I have deliberately,
+I'm indebted to Inferno's spki(2), whose API I have deliberately
 mimicked, making it more Go-like as seemed meet.
 
 ## Usage
@@ -164,6 +164,12 @@ Neither RSA, DSA, NIST curves other than p256 & p34 nor non-NIST-curve ECDSA
 keys are supported at this point in time. In the future PublicKey will likely be
 an interface.
 
+#### func (PublicKey) Sexp
+
+```go
+func (k PublicKey) Sexp() (s sexprs.Sexp)
+```
+
 #### type Signature
 
 ```go
@@ -190,6 +196,20 @@ signature looks like:
 where PRINCIPAL is either a public key or the hash of a public key. If PRINCIPAL
 is a hash, lookupFunc is used to look it up; if it is nil or returns nil, then
 EvalSignature returns a HashNotFoundError.
+
+#### func (*Signature) Sexp
+
+```go
+func (sig *Signature) Sexp() sexprs.Sexp
+```
+Sexp returns an S-expression fully representing sig
+
+#### func (*Signature) String
+
+```go
+func (sig *Signature) String() string
+```
+String is a shortcut for sig.Sexp().String()
 
 #### type URIs
 
