@@ -42,7 +42,7 @@ func TestHash(t *testing.T) {
 }
 
 func TestECDSA256Key(t *testing.T) {
-	sexp, _, err := sexprs.ReadBytes([]byte("(public-key (ecdsa-sha2 (curve p256) (x #deadbeef#) (y #f00f#)))"))
+	sexp, _, err := sexprs.ReadBytes([]byte("(public-key (ecdsa-sha2 (curve p256) (x |vSmjExRs7DcpfWee3jTjx67KYHirQHO1Emti/UN2r5w=|) (y |CIZuZoyB38XoIyREM0fhDdsSc/jZEVLpLYeqVPje9Mc=|)))"))
 	if err != nil {
 		t.Fatal(err)
 	}
