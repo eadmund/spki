@@ -17,7 +17,7 @@ func TestHash(t *testing.T) {
 	if !h1.Equal(h2) {
 		t.Fatal("Equal hashes are not Equal()")
 	}
-	sexp, _, err := sexprs.ReadBytes([]byte("(hash sha512 #7356f5d518d0a4f02741fee41b851cacfd428f02dc6c92557807dc6b51a97c2f3404121eb752a7c14819143a9273aff47bef5f7305e1476f4ab338832bc9d022#)"))
+	sexp, _, err := sexprs.Parse([]byte("(hash sha512 #7356f5d518d0a4f02741fee41b851cacfd428f02dc6c92557807dc6b51a97c2f3404121eb752a7c14819143a9273aff47bef5f7305e1476f4ab338832bc9d022#)"))
 	if err != nil {
 		t.Fatal("Error reading hash S-expression", err)
 	}
@@ -32,7 +32,7 @@ func TestHash(t *testing.T) {
 	if err == nil {
 		t.Fatal("EvalHash didn't return an error when passed an empty list", h1)
 	}
-	sexp, _, err = sexprs.ReadBytes([]byte("(hash sha512 #7356f5d518d0a4f02741fee41b851cacfd428f02dc6c92557807dc6b51a97c2f3404121eb752a7c14819143a9273aff47bef5f7305e1476f4ab338832bc9d022# (uris \"http://example.com\"))"))
+	sexp, _, err = sexprs.Parse([]byte("(hash sha512 #7356f5d518d0a4f02741fee41b851cacfd428f02dc6c92557807dc6b51a97c2f3404121eb752a7c14819143a9273aff47bef5f7305e1476f4ab338832bc9d022# (uris \"http://example.com\"))"))
 	h1, err = EvalHash(sexp)
 	if h1.URIs == nil {
 		t.Fatal("No URIs for URI-having hash")
@@ -42,7 +42,7 @@ func TestHash(t *testing.T) {
 }
 
 func TestECDSA256Key(t *testing.T) {
-	sexp, _, err := sexprs.ReadBytes([]byte("(public-key (ecdsa-sha2 (curve p256) (x #deadbeef#) (y #f00f#)))"))
+	sexp, _, err := sexprs.Parse([]byte("(public-key (ecdsa-sha2 (curve p256) (x |vSmjExRs7DcpfWee3jTjx67KYHirQHO1Emti/UN2r5w=|) (y |CIZuZoyB38XoIyREM0fhDdsSc/jZEVLpLYeqVPje9Mc=|)))"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,11 +61,11 @@ func TestECDSASHA2PrivateKey(t *testing.T) {
 	}
 	spki_key := PrivateKey{*key}
 	//t.Log(spki_key.String())
-	string_key, _, err := sexprs.ReadBytes([]byte(spki_key.String()))
+	string_key, _, err := sexprs.Parse([]byte(spki_key.String()))
 	if err != nil {
 		t.Fatal(err)
 	}
-	byte_key, _, err := sexprs.ReadBytes(spki_key.Sexp().Pack())
+	byte_key, _, err := sexprs.Parse(spki_key.Sexp().Pack())
 	if err != nil {
 		t.Fatal(err)
 	}

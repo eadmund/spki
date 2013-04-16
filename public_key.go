@@ -131,7 +131,6 @@ func (k PublicKey) Sexp() (s sexprs.Sexp) {
 				sexprs.Atom{Value: []byte("y")},
 				sexprs.Atom{Value: k.Y.Bytes()},
 			},
-
 		},
 	}
 }
