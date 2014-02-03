@@ -56,24 +56,26 @@ func (k *PrivateKey) Pack() []byte {
 
 // Key-specific methods
 
-// Always returns false for a private key.
+// IsHash always returns false for a private key.
 func (k *PrivateKey) IsHash() bool {
 	return false
 }
 
 
-// PublicKey returns the public key associated with k.  It never
-// returns an error.
-func (k *PrivateKey) PublicKey() (*PublicKey, error) {
+// PublicKey returns the public key associated with k.
+func (k *PrivateKey) PublicKey() *PublicKey {
 	p := new(PublicKey)
 	p.Curve = k.Curve
 	p.X = k.X
 	p.Y = k.Y
-	return p, nil
+	return p
 }
 
 func (k *PrivateKey) HashedExpr(algorithm string) (hash Hash, err error) {
-	// BUG(ruhl): check list of hashes in HashKey first
+	hash, err = k.HashKey.HashedExpr(algorithm)
+	if err != nil {
+		return hash, nil
+	}
 	newHash, ok := KnownHashes[algorithm]
 	if !ok {
 		return hash, fmt.Errorf("Unknown hash algorithm %s", algorithm)
