@@ -54,6 +54,7 @@ func evalECDSAPublicKey(s sexprs.Sexp) (k *PublicKey, err error) {
 		}
 		return k, nil
 	case ecdsa384Atom.Equal(l[0]):
+		panic("p384 not yet supported")
 	default:
 		return nil, fmt.Errorf("ECDSA key S-expression must start with 'ecdsa-sha2'")
 	}
