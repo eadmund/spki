@@ -95,12 +95,11 @@ func TestGeneratePrivateKey(t *testing.T ) {
 }
 
 func TestSignature(t *testing.T) {
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	key, err := GeneratePrivateKey("ecdsa-sha2 (curve p256)")
 	if err != nil {
 		t.Fatal(err)
 	}
-	spki_key := PrivateKey{HashKey{}, *key}
-	sig, err := spki_key.Sign(spki_key.Sexp())
+	sig, err := key.Sign(key.Sexp())
 	if err != nil {
 		t.Fatal(err)
 	}
