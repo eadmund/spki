@@ -21,7 +21,7 @@ type PublicKey struct {
 //    (public-key (ecdsa-sha2 (curve p256) (x |...|) (y |...|)))
 // The format of a 384-bit ECDSA public key is:
 //    (public-key (ecdsa-sha2 (curve p384) (x |...|) (y |...|)))
-// Neither RSA, DSA, NIST curves other than p256 & p34 nor non-NIST-curve 
+// Neither RSA, DSA, NIST curves other than p256 & p384 nor non-NIST-curve 
 // ECDSA keys are supported at this point in time.  In the future PublicKey
 // will likely be an interface.
 func EvalPublicKey(s sexprs.Sexp) (k *PublicKey, err error) {
