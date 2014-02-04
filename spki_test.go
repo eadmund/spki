@@ -59,7 +59,7 @@ func TestECDSASHA2PrivateKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	spki_key := PrivateKey{*key}
+	spki_key := PrivateKey{HashKey{}, *key}
 	//t.Log(spki_key.String())
 	string_key, _, err := sexprs.Parse([]byte(spki_key.String()))
 	if err != nil {
@@ -87,13 +87,19 @@ func TestECDSASHA2PrivateKey(t *testing.T) {
 	}
 }
 
-func TestSignature(t *testing.T) {
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+func TestGeneratePrivateKey(t *testing.T ) {
+	_, err := GeneratePrivateKey("ecdsa-sha2 (curve p256)")
 	if err != nil {
 		t.Fatal(err)
 	}
-	spki_key := PrivateKey{*key}
-	sig, err := spki_key.Sign(spki_key.Sexp())
+}
+
+func TestSignature(t *testing.T) {
+	key, err := GeneratePrivateKey("ecdsa-sha2 (curve p256)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sig, err := key.Sign(key.Sexp())
 	if err != nil {
 		t.Fatal(err)
 	}

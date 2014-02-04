@@ -13,11 +13,12 @@ import (
 )
 
 type PrivateKey struct {
+	HashKey
 	ecdsa.PrivateKey
 }
 
 // Sexp returns a well-formed S-expression for k
-func (k PrivateKey) Sexp() (s sexprs.Sexp) {
+func (k *PrivateKey) Sexp() (s sexprs.Sexp) {
 	l := make(sexprs.List, 2)
 	l[0] = sexprs.Atom{Value: []byte("private-key")}
 	ll := make(sexprs.List, 5)
@@ -49,8 +50,20 @@ func (k PrivateKey) Sexp() (s sexprs.Sexp) {
 	return l
 }
 
-// PublicKey returns the public key associated with k
-func (k PrivateKey) PublicKey() *PublicKey {
+func (k *PrivateKey) Pack() []byte {
+	return k.Sexp().Pack()
+}
+
+// Key-specific methods
+
+// IsHash always returns false for a private key.
+func (k *PrivateKey) IsHash() bool {
+	return false
+}
+
+
+// PublicKey returns the public key associated with k.
+func (k *PrivateKey) PublicKey() *PublicKey {
 	p := new(PublicKey)
 	p.Curve = k.Curve
 	p.X = k.X
@@ -58,12 +71,52 @@ func (k PrivateKey) PublicKey() *PublicKey {
 	return p
 }
 
+func (k *PrivateKey) HashedExpr(algorithm string) (hash Hash, err error) {
+	hash, err = k.HashKey.HashedExpr(algorithm)
+	if err != nil {
+		return hash, nil
+	}
+	newHash, ok := KnownHashes[algorithm]
+	if !ok {
+		return hash, fmt.Errorf("Unknown hash algorithm %s", algorithm)
+	}
+	hasher := newHash()
+	_, err = hasher.Write(k.Pack())
+	if err != nil {
+		return hash, err
+	}
+	hash.Algorithm = algorithm
+	hash.Hash = hasher.Sum(nil)
+	return hash, nil
+}
+
+func (k *PrivateKey) Hashed(algorithm string) ([]byte, error) {
+	hash, err := k.HashedExpr(algorithm)
+	return hash.Hash, err
+}
+
+func (k *PrivateKey) SignatureAlgorithm() string {
+	return "ecdsa-sha2"
+}
+
+func (k *PrivateKey) HashAlgorithm() string {
+	switch k.Curve {
+	case elliptic.P256():
+		return "p256"
+	case elliptic.P384():
+		return "p384"
+	default:
+		return ""
+	}
+}
+
 func (k *PrivateKey) sign(h Hash) (sig *Signature, err error) {
 	r, s, err := ecdsa.Sign(rand.Reader, &k.PrivateKey, h.Hash)
 	if err != nil {
 		return nil, err
 	}
-	return &Signature{Hash: h, Principal: k.PublicKey(), R: r, S: s}, nil
+	pk, _ := k.PublicKey()
+	return &Signature{Hash: h, Principal: pk, R: r, S: s}, nil
 }
 
 func (k *PrivateKey) Sign(s sexprs.Sexp) (sig *Signature, err error) {
@@ -86,7 +139,7 @@ func (k *PrivateKey) Sign(s sexprs.Sexp) (sig *Signature, err error) {
 }
 
 // String is a shortcut for k.Sexp().String()
-func (k PrivateKey) String() (s string) {
+func (k *PrivateKey) String() (s string) {
 	return k.Sexp().String()
 }
 
@@ -160,5 +213,29 @@ func evalECDSASHA2PrivateKeyTerms(l sexprs.List) (k PrivateKey, err error) {
 	if err != nil {
 		return k, err
 	}
+	return k, nil
+}
+
+// BUG(eadmund): parse algorithm as a canonical s-expression
+
+// GeneratePrivateKey generates a new private key as specified by
+// algorithm, e.g. "ecdsa-sha2 (curve p256)".  Returns an error if the
+// algorithm is unknown.
+func GeneratePrivateKey(algorithm string) (k *PrivateKey, err error) {
+	switch algorithm {
+	case "ecdsa-sha2 (curve p256)":
+		return GenerateP256Key()
+	default:
+		return nil, fmt.Errorf("Unknown algorithm '%s'", algorithm)
+	}
+}
+
+func GenerateP256Key() (k *PrivateKey, err error) {
+	kk, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	// BUG(eadmund): zeroise kk afterwards
+	k = &PrivateKey{HashKey{}, *kk}
 	return k, nil
 }

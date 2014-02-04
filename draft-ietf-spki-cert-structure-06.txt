@@ -1,0 +1,2622 @@
+
+Simple Public Key Certificate                            Carl M. Ellison
+INTERNET-DRAFT                                                     Intel
+Expires: 31 January 2000
+                                                             Bill Frantz
+                                                    Electric Communities
+
+                                                          Butler Lampson
+                                                               Microsoft
+
+                                                              Ron Rivest
+                                     MIT Laboratory for Computer Science
+
+                                                         Brian M. Thomas
+                                                       Southwestern Bell
+
+                                                             Tatu Ylonen
+                                                                     SSH
+
+                                                            26 July 1999
+
+
+
+                     Simple Public Key Certificate
+                     ------ ------ --- -----------
+
+                <draft-ietf-spki-cert-structure-06.txt>
+
+
+Status of This Document
+
+   This draft is intended to become a Proposed Standard RFC.  It defines
+   a form of public key certificate and structures related to the
+   communication and use of such certificates.  This document supersedes
+   the draft filed under the name draft-ietf-spki-cert-structure-05.txt.
+   It has changed in minor details, to reflect decisions made at the
+   last meeting and by e-mail.
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+   document are to be interpreted as described in RFC 2119.
+
+   The theory behind the SPKI certificate is to be found in draft-ietf-
+   spki-cert-theory-*.txt.  Examples of certificate uses are to be found
+   in draft-ietf-spki-cert-examples-*.txt.  The requirements behind this
+   work are listed in draft-ietf-cert-req-*.txt.
+
+   Distribution of this document is unlimited.  Comments should be sent
+   to the SPKI (Simple Public Key Infrastructure) Working Group mailing
+   list <spki@c2.net> or to the authors.  Membership on the mailing list
+   can be achieved by sending a message consisting of the line:
+
+     subscribe spki
+
+
+
+Ellison, et al.                                                 [Page 1]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   to majordomo@c2.net.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups.  Note that
+   other groups may also distribute working documents as Internet-
+   Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six
+   months.  Internet-Drafts may be updated, replaced, or obsoleted by
+   other documents at any time.  It is not appropriate to use Internet-
+   Drafts as reference material or to cite them other than as a
+   ``working draft'' or ``work in progress.''
+
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/ietf/1id-abstracts.txt
+
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html
+
+
+
+
+Abstract
+
+   This document defines the structure of SPKI certificates, CRLs, other
+   fine-grain validity instruments and sequences of those objects to be
+   delivered from a prover to a verifier.  The purpose of such objects
+   is to establish the prover's authorization to have a request
+   satisfied by the verifier.  Establishing identity, sometimes thought
+   to be the only purpose of a certificate, is considered to be an
+   optional step in this process but not the goal of the effort and
+   often unnecessary.
+
+   The authorization computation also involves an ACL [Access Control
+   List], by necessity.  Since the ACL is never communicated from one
+   party to another, there is no reason to standardize its format.  That
+   is left to the implementer, although this document does give an
+   example format for an ACL.
+
+   The authorization field carried by SPKI certificates and ACLs is left
+   to be defined, to suit each particular application or protocol.  SPKI
+   defines rules for combination of authorization fields, constraining
+   the construction of these, but leaves specific details up to the
+   implementer.  Examples of authorization fields are to be found in
+   draft-ietf-spki-cert-examples-*.txt.
+
+   The process of reducing SPKI sequences and an ACL to determine an
+   authorization result is spelled out here, but an individual
+   implementer is free to design new reduction algorithms as long as
+   they are computationally equivalent to the one defined here.
+
+
+Ellison, et al.                                                 [Page 2]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   SPKI certificates bind either names or explicit authorizations to
+   keys or other objects.  The binding to a key can be directly to an
+   explicit key, or indirectly through the hash of the key or a name for
+   it.  The binding to an object is via the hash of the object or a name
+   that resolves to that hash.  The name and authorization structures
+   can be used separately or together.  We use S-expressions as the
+   standard format for these certificates and define a canonical form
+   for those S-expressions.  As part of this development, a mechanism
+   for deriving authorization decisions from a mixture of certificate
+   types was developed and is described in the companion theory
+   document.
+
+   These structures are also known under the name SDSI 2.0.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ellison, et al.                                                 [Page 3]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+Table of Contents
+
+      Status of This Document....................................1
+      Abstract...................................................2
+
+      Table of Contents..........................................4
+
+      1. Overview of Contents....................................6
+
+      2. Glossary................................................7
+
+      3. Primitives.............................................10
+      3.1 Canonical S-expression................................10
+      3.2 <byte-string>.........................................10
+      3.2.1 <integer>...........................................11
+      3.3 S-expression..........................................11
+      3.4 Encoding examples.....................................12
+      3.5 Use of canonical S-expressions........................12
+      3.6 Advanced S-expressions................................13
+      3.7 Unique IDs............................................13
+      3.8 Primitive Objects.....................................14
+      3.8.1 <pub-key>...........................................14
+      3.8.1.1 RSA key format....................................15
+      3.8.1.2 DSA key format....................................16
+      3.8.1.3 Elliptic Curve DSA key format.....................17
+      3.8.2 <hash>..............................................18
+      3.8.3 <signature>.........................................18
+      3.8.3.1 <sig-val>.........................................19
+      3.8.3.2 Sample signatures.................................19
+
+      4. Authorization Certificate..............................21
+      4.1 <version>.............................................21
+      4.2 <cert-display>........................................21
+      4.3 <issuer>..............................................22
+      4.4 <issuer-loc>..........................................22
+      4.5 <subject>.............................................22
+      4.5.1 <obj-hash>..........................................23
+      4.5.2 <keyholder>.........................................23
+      4.5.3 <subj-thresh>.......................................23
+      4.6 <subject-loc>.........................................24
+      4.7 <deleg>...............................................25
+      4.8 <tag>.................................................25
+      4.9 <valid>...............................................25
+      4.9.1 <date>..............................................26
+      4.9.2 <online-test>.......................................26
+      4.9.3 Online test protocols...............................27
+      4.10 <comment>............................................28
+
+      5. Name certificate.......................................29
+      5.1 Name certificate syntax...............................29
+      5.2 <name>................................................30
+      5.3 Name reduction........................................30
+
+Ellison, et al.                                                 [Page 4]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+      6. ACL and Sequence formats...............................32
+      6.1 <acl>.................................................32
+      6.2 <sequence>............................................33
+
+      7. online test reply formats..............................34
+      7.1 CRL and delta-CRL.....................................34
+      7.2 Revalidation..........................................35
+      7.3 One-time revalidation.................................35
+
+      8. 5-Tuple Reduction......................................36
+      8.1 <5-tuple> BNF.........................................36
+      8.2 Top level reduction rule..............................37
+      8.3 Intersection of tag sets..............................37
+      8.4 Reduction of (subject (threshold ..)).................38
+      8.7 Certificate Result Certificates.......................38
+
+      9. Full BNF...............................................40
+      9.1 Top Level Objects.....................................40
+      9.2 Alphabetical List of BNF Rules........................40
+
+      References................................................43
+
+      Acknowledgments...........................................45
+      Authors' Addresses........................................45
+      Expiration and File Name..................................46
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ellison, et al.                                                 [Page 5]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+1. Overview of Contents
+
+   This document contains the following sections:
+
+   Section 1: this overview.
+
+   Section 2: a glossary of terms.
+
+   Section 3: the definition of structure primitives used throughout the
+   rest of the document.
+
+   Section 4: the definition of an authorization certificate and its
+   component parts.
+
+   Section 5: the definition of a name certificate and the few parts
+   that differ from an authorization certificate.
+
+   Section 6: the definition of an ACL and a (sequence...) structure.
+
+   Section 7: the definition of online test reply formats.  An online
+   test is a mechanism for asking for a CRL or a revalidation.  The
+   replies are CRLs or revalidations.
+
+   Section 8: the rules of 5-tuple reduction
+
+   Section 9: the full BNF.
+
+   The References section lists all documents referred to in the text as
+   well as readings which might be of interest to anyone reading on this
+   topic.
+
+   The Acknowledgements section.
+
+   The Authors' Addresses section gives the addresses, telephone numbers
+   and e-mail addresses of the authors.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ellison, et al.                                                 [Page 6]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+2. Glossary
+
+   We use some terms in the body of this document in ways that could be
+   specific to SPKI:
+
+   ACL: an Access Control List: a list of entries that anchors a
+   certificate chain.  Sometimes called a "list of root keys", the ACL
+   is the source of empowerment for certificates.  That is, a
+   certificate communicates power from its issuer to its subject, but
+   the ACL is the source that power (since it theoretically has the
+   owner of the resource being controlled as its implicit issuer).  An
+   ACL entry has potentially the same content as a certificate body, but
+   has no Issuer (and is not signed).  There is most likely one ACL for
+   each resource owner, if not for each controlled resource.
+
+   CERTIFICATE: a signed instrument that empowers the Subject.  It
+   contains at least an Issuer and a Subject.  It can contain validity
+   conditions, authorization and delegation information.  Certificates
+   come in three categories: ID (mapping <name,key>), Attribute (mapping
+   <authorization,name>), and Authorization (mapping
+   <authorization,key>).  An SPKI authorization or attribute certificate
+   can pass along all the empowerment it has received from the Issuer or
+   it can pass along only a portion of that empowerment.
+
+   CANONICAL S-EXPRESSION: an encoding of an S-expression that does not
+   permit equivalent representations and is designed for easy parsing.
+
+   FULLY QUALIFIED NAME: a local name together with a global identifier
+   defining the name space in which that local name is defined.
+
+   GLOBAL IDENTIFIER: a globally unique byte string, associated with the
+   keyholder.  In SPKI this is the public key itself, a collision-free
+   hash of the public key or a Fully Qualified Name.
+
+   HASH: a cryptographically strong hash function, assumed to be
+   collision resistant.  In general, the hash of an object can be used
+   wherever the object can appear.  The hash serves as a name for the
+   object from which it was computed.
+
+   ISSUER: the signer of a certificate and the source of empowerment
+   that the certificate is communicating to the Subject.
+
+   KEYHOLDER: the person or other entity that owns and controls a given
+   private key.  This entity is said to be the keyholder of the keypair
+   or just the public key, but control of the private key is assumed in
+   all cases.
+
+   NAME: a SDSI name always relative to the definer of some name space.
+   This is sometimes also referred to as a local name.  A global (fully
+   qualified) name includes the global identifier of the definer of the
+
+
+Ellison, et al.                                                 [Page 7]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   name space.  For example, if
+     (name jim)
+   is a local name,
+     (name (hash md5 |+gbUgUltGysNgewRwu/3hQ==|) jim)
+   could be the corresponding fully qualified name.
+
+   ONLINE TEST: one of three forms of validity test: (1) CRL; (2)
+   revalidation; or (3) one-time revalidation.  Each refines the date
+   range during which a given certificate or ACL entry is considered
+   valid, although the last defines a validity interval of effectively
+   zero length.
+
+   PRINCIPAL: a cryptographic key, capable of generating a digital
+   signature.  We deal with public-key signatures in this document but
+   any digital signature method should apply.
+
+   PROVER: the entity that wishes access or that digitally signs a
+   document.  The Prover typically sends a message or opens a channel to
+   the Verifier that then checks signatures and credentials sent by the
+   Prover.
+
+   SPEAKING: A Principal is said to "speak" by means of a digital
+   signature.  The statement made is the signed object (often a
+   certificate).  The Principal is said to "speak for" the Keyholder.
+
+   SUBJECT: the thing empowered by a certificate or ACL entry.  This can
+   be in the form of a key, a name (with the understanding that the name
+   is mapped by certificate to some key or other object), a hash of some
+   object, or a set of keys arranged in a threshold function.
+
+   S-EXPRESSION: the data format chosen for SPKI/SDSI.  This is a LISP-
+   like parenthesized expression with the limitations that empty lists
+   are not allowed and the first element in any S-expression must be a
+   string, called the "type" of the expression.
+
+   THRESHOLD SUBJECT: a Subject for an ACL entry or certificate that
+   specifies K of N other Subjects.  Conceptually, the power being
+   transmitted to the Subject by the ACL entry or certificate is
+   transmitted in (1/K) amount to each listed subordinate Subject.  K of
+   those subordinate Subjects must agree (by delegating their shares
+   along to the same object or key) for that power to be passed along.
+   This mechanism introduces fault tolerance and is especially useful in
+   an ACL entry, providing fault tolerance for "root keys".
+
+   TUPLE: The security-relevant fields from a certificate or ACL entry.
+   We speak of 4-tuples for name certificates and 5-tuples for
+   authorizations.  The 4-tuple has fields:
+    <Issuer, Name, Subject, Validity>
+   while the 5-tuple has fields:
+    <Issuer, Subject, Delegation, Authorization, Validity>.
+
+
+Ellison, et al.                                                 [Page 8]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   VALIDITY CONDITIONS: a date range that must include the current date
+   and time and/or a set of online tests that must succeed before a
+   certificate is to be considered valid.
+
+   VERIFIER: the entity that processes requests from a prover, including
+   certificates.  The verifier uses its own ACL entries plus
+   certificates provided by the prover to perform "5-tuple reduction",
+   to arrive at a 5-tuple it believes about the prover:
+   <self,prover,D,A,V>.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ellison, et al.                                                 [Page 9]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+3. Primitives
+
+   We have chosen a simplified form of S-expression (the canonical form)
+   as the format for SPKI objects.  An S-expression is a list enclosed
+   in matching "(" and ")".  We assume the S-expression technology of
+   [SEXP] with the restrictions that no empty lists are allowed and that
+   each list must have a byte string as its first element.  That first
+   element is the "type" or "name" of the object represented by the list
+   and must be a byte-string.
+
+   SPKI objects are defined below in a familiar extension of BNF -- with
+   "|" meaning logical OR, "*" meaning closure (0 or more occurrences),
+   "?" meaning optional (0 or 1 occurrence) and "+" meaning non-empty
+   closure (1 or more occurrences).  A quoted string represents those
+   characters.  First we define the canonical S-expression form in that
+   BNF.
+
+   For the sake of readability, all examples and the BNF in this
+   document deal with advanced rather than canonical S-expressions.
+   That is, single word strings that start with alphabetic characters
+   are used without quotes and strings can be in hex, base64 or double-
+   quoted ASCII.  The mapping to canonical form is specified below.
+
+
+
+3.1 Canonical S-expression
+
+   All SPKI structures communicated from one machine to another must be
+   in canonical form.  If canonical S-expressions need to be transmitted
+   over a 7-bit channel, there is a form defined for base64 encoding
+   them.
+
+   A canonical S-expression is formed from binary byte strings, each
+   prefixed by its length, plus the punctuation characters "()[]".  The
+   length of a byte string is a non-negative ASCII decimal number, with
+   no unnecessary leading "0" digits, terminated by ":".  The canonical
+   form is a unique representation of an S-expression and is used as the
+   input to all hash and signature functions.
+
+
+
+3.2 <byte-string>
+
+   A byte-string is a sequence of binary bytes (octets), optionally
+   modified by a display type.
+
+   All byte strings carry explicit lengths and are therefore not
+   0-terminated as in the C language.  They are treated as binary even
+   when they are ASCII, and can use any character set encoding desired.
+   Typically, such a choice of character set would be indicated by a
+
+
+Ellison, et al.                                                [Page 10]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   display type.
+
+   A display type is assumed to be a MIME type giving optional
+   instructions to any program wishing to display or use the byte
+   string.  For example, it might indicate that the string is in
+   UNICODE, is a GIF or JPEG image, is an audio segment, is a biometric
+   template from some particular manufacturer, etc.  Although the
+   display type of a byte string is optional, it is considered part of
+   the string for any equality comparisons or hashing.  That is, two
+   strings with the same bytes will not be considered equal (or
+   otherwise comparable) if they have unequal display types.
+
+   A byte-string is defined by:
+
+   <byte-string>:: <bytes> | <display-type> <bytes> ;
+   <bytes>:: <decimal> ":" {binary byte string of that length} ;
+   <decimal>:: <nzddigit> <ddigit>* | "0" ;
+   <nzddigit>:: "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+   <ddigit>:: "0" | <nzddigit> ;
+   <display-type>:: "[" <bytes> "]" ;
+
+
+
+3.2.1 <integer>
+
+   An integer is a kind of byte-string,
+
+   <integer>:: <byte-string> ;
+
+   that we distinguish only because it is encoded in the way expected by
+   multi-precision libraries.  We assume those libraries deal only with
+   signed multi-precision integers, even if they are known to be
+   positive (e.g., a modulus for RSA or DSA).
+
+   The bytes of a binary integer are twos-complement, in network
+   standard order (most significant byte first).  On the assumption that
+   they are signed, a leading 0x00 or 0xFF byte may need to be present,
+   but redundant bytes of sign need not be.
+
+   The integer value 0 is expressed as a 1-byte string holding the 0
+   byte, not as the empty string "".
+
+
+
+3.3 S-expression
+
+   An S-expression is of the form:
+
+   <s-expr>:: "(" <byte-string> <s-part>* ")" ;
+   <s-part>:: <byte-string> | <s-expr> ;
+
+
+Ellison, et al.                                                [Page 11]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   where the first byte string in the S-expression is referred to here
+   as its "type".
+
+
+
+3.4 Encoding examples
+
+     (4:test26:abcdefghijklmnopqrstuvwxyz5:123455::: ::)
+
+   is a canonical S-expression consisting of four byte strings: "test",
+   "abcdefghijklmnopqrstuvwxyz", "12345" and ":: ::".
+
+   The advanced text form is:
+
+     (test abcdefghijklmnopqrstuvwxyz "12345" ":: ::")
+
+   showing that the advanced form follows familiar token recognition
+   rules, not permitting tokens to start with digits, terminating them
+   with white space or punctuation marks.
+
+   For transmission of true 8-bit forms, we permit base64 encodings
+   according to [RFC2045], with the base64 characters enclosed in braces
+   "{}".  The example above encodes to:
+
+   {KDQ6dGVzdDI2OmFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6NToxMjM0NTU
+   6OjogOjop}
+
+
+
+3.5 Use of canonical S-expressions
+
+   Canonical S-expressions were designed to be as simple to pack and
+   parse as possible.  Some concessions were made to those developers
+   who might want to examine a canonical S-expression in an ASCII editor
+   like emacs (specifically the readable decimal length fields and
+   readable "()[]" characters) but in general the form is as close to
+   minimum size as possible.  Parsing of a canonical form S-expression
+   requires minimal look-ahead and no re-scanning of incoming bytes.  As
+   a result, the parsing code remains very small.  Assuming each byte
+   string is stored internally with a length field, packing a data
+   structure into a canonical S-expression requires an extremely small
+   amount of code.
+
+   The canonical S-expression is the form which is hashed for both
+   generating and verifying signatures.  These two processes can be
+   thought of as the start and end of an SPKI object's useful life and
+   both require canonical form.  The implementer may wish to keep the
+   canonical form around, alongside any parsed version, for convenience
+   in the event memory is not overly limited.
+
+
+
+Ellison, et al.                                                [Page 12]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   [This document includes some advanced forms for readability.  Since
+   this document is required to be straight ASCII, no 8-bit binary
+   canonical forms will be presented except under base64 encoding.]
+
+
+
+3.6 Advanced S-expressions
+
+   [SEXP] includes a general purpose utility program for converting
+   between canonical and advanced S-expression form.  In the advanced
+   form, individual byte strings may be expressed without length fields
+   (if they are what most languages consider text tokens), may be
+   written as quoted strings (under normal C string rules), or may be
+   individually hex or base64 encoded.  Also in the advanced form, white
+   space between list elements is allowed for readability and ignored on
+   conversion to canonical form.
+
+   For examples, this document will normally use the advanced form
+   because of its readability, but for at least one concrete example the
+   canonical form and its hash are presented (base64 encoded where
+   necessary, given that this document is 7-bit ASCII).
+
+   In these examples, we will use keywords without preceding length
+   fields, quoted strings, hex values (delimited by "#") and base64
+   values (delimited by "|").  Those are features of the advanced
+   transport form of an S-expression, and are not part of the canonical
+   form.  Each example here that has a binary canonical form is
+   presented along with the base-64 encoded form which the reader can
+   decode to get the binary canonical form.
+
+
+
+3.7 Unique IDs
+
+   Top level object names are defined in this document along with
+   certain algorithm names.  <tag> objects are user-defined, using a
+   language for describing sets of permissions given here, and in the
+   process, the defining user can choose any object names he or she
+   wishes.
+
+   For the definition of new algorithm names, it is our preference that
+   this be taken on by IANA [RFC1780] for single-word standard names.
+   In the interest of maximum flexibility we also permit users to define
+   their own algorithm names via a normal URIs (which presumably point
+   to descriptions of the algorithms or even to code).
+
+
+
+
+
+
+
+Ellison, et al.                                                [Page 13]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+3.8 Primitive Objects
+
+   The objects defined in SPKI/SDSI 2.0 are S-expressions.  That is they
+   are lists of either byte strings or other lists.  In our case, all S-
+   expressions start with a <byte-string>, called the object name.  The
+   remaining elements of the list are called "parts" of the object.
+
+   In a communication from prover to verifier, one might encounter only
+   a small number of different objects: usually a <sequence> of <cert>,
+   <pub-key>, <signature> and <op>.  The verifier will also need to
+   refer to its own <acl>.  These are considered top level objects and
+   are defined in the sections immediately following
+
+   It is standard SPKI/SDSI practice to use names starting with a lower
+   case letter, followed by lower case letters, digits and hyphens for
+   object types.  SPKI/SDSI is case-sensitive, so the byte-string "RSA"
+   is not the same as "rsa".  Non-standard object types (i.e. <tag>s
+   defined by an application developer) are unconstrained, may have
+   display types and may even be URIs pointing to documentation of the
+   object type.
+
+   The structure and interpretation of the parts is up to the designer
+   of the top-level object type.  However, for the sake of
+   simplification, we have decided that all objects are "positional".
+   That is, their parts are listed in some fixed order with meaning of
+   the part depending on its position.  Parts can be omitted only by
+   omitting a contiguous set of trailing parts.  Exceptions to this are
+   found in the top level <cert> and <acl> constructs.
+
+   The following are the definitions of the top level objects which a
+   verifying program may encounter.  Note that the main object, <cert>,
+   is sub-type based so the parameter fields may be in any order, but
+   the BNF suggests a fixed order.  We use the BNF definition to
+   indicate that there may not be more than one of each of the listed
+   fields, and also to suggest (for readability) that the certificate
+   parts be presented in the order given.  This document will use that
+   order.
+
+
+
+3.8.1 <pub-key>
+
+   <pub-key>:: "(" "public-key" "(" <pub-sig-alg-id> <s-expr>* ")"
+   <uris>? ")" ;
+
+   A public key definition gives everything the user needs to employ the
+   key for checking signatures.  The <uri>s, if present, give locations
+   where one might find certificates empowering that public key.
+
+   The only pub-sig-alg-id's we have defined at this point are for
+
+
+Ellison, et al.                                                [Page 14]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   signature verification.  That is because we need only signature keys
+   for certificate formation and access control.  Other key types are
+   open to being defined by application developers.  Should some become
+   popular enough, their S-expression forms can be standardized later.
+
+
+
+3.8.1.1 RSA key format
+
+   The following is an RSA signature key, shown in advanced transport
+   format:
+
+   (public-key
+    (rsa-pkcs1-md5
+     (e #03#)
+     (n
+      |ANHCG85jXFGmicr3MGPj53FYYSY1aWAue6PKnpFErHhKMJa4HrK4WSKTO
+      YTTlapRznnELD2D7lWd3Q8PD0lyi1NJpNzMkxQVHrrAnIQoczeOZuiz/yY
+      VDzJ1DdiImixyb/Jyme3D0UiUXhd6VGAz0x0cgrKefKnmjy410Kro3uW1| )))
+
+   For actual use, the key is held and presented in canonical form the
+   base64 encoding of which is:
+
+   {KDEwOnB1YmxpYy1rZXkoMTM6cnNhLXBrY3MxLW1kNSgxOmUxOgMpKDE6bjE
+   yOToA0cIbzmNcUaaJyvcwY+PncVhhJjVpYC57o8qekUSseEowlrgesrhZIpM
+   5hNOVqlHOecQsPYPuVZ3dDw8PSXKLU0mk3MyTFBUeusCchChzN45m6LP/JhU
+   PMnUN2IiaLHJv8nKZ7cPRSJReF3pUYDPTHRyCsp58qeaPLjXQquje5bUpKSk=}
+
+   Although not strictly needed by this draft, the private key for the
+   public key above is:
+
+   (private-key
+    (rsa-pkcs1-md5
+     (e #03#)
+     (n
+      |ANHCG85jXFGmicr3MGPj53FYYSY1aWAue6PKnpFErHhKMJa4HrK4WSKT
+      OYTTlapRznnELD2D7lWd3Q8PD0lyi1NJpNzMkxQVHrrAnIQoczeOZuiz/
+      yYVDzJ1DdiImixyb/Jyme3D0UiUXhd6VGAz0x0cgrKefKnmjy410Kro3u
+      W1|)
+     (d
+      |AIvWvTRCPYvEW9ykyu1CmkuQQMQjm5V0Um0xvwuDHaWGyw8lacx65hcM
+      0QM3uRw2iaaCyCkCnuO+k19fX4ZMXOD7cLN/Qrql8Efx5mczcoGN+Eo6F
+      F+cvgXfupe1VM6PmJdFIauJerTHUOlPrI12N+NnAL7CvU6X1nhOnf/Z77
+      iz|)
+     (p
+      |APesjZ8gK4RGV5Qs1eCRAVp7mVblgf13R5fwApw6bTVWzunIwk/2sShy
+      ytpc90edr+0DPwldnvEXTUY1df0DwPc=|)
+     (q
+      |ANjPQe6O0Jfv90GWE3q2c9724AX7FKx64g2F8lxgiWW0QKEeqiWiiEDx
+      7qh0lLrhmBT+VXEDFRG2LHmuNSTzj7M=|)
+
+
+Ellison, et al.                                                [Page 15]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+     (a
+      |AKUds79qx62EOmLIjpW2AOb9EOSZAVOk2mVKrGgm83jkifEwgYqkdhr3
+      MebopNppH/NXf1uTv0tk3i7OTqitK08=|)
+     (b
+      |AJCKK/RfNbqf+iu5YlHO9+n56q6nYx2nQV5ZTD2VsO54KxYUcW5sWtX2
+      nxr4YydBEA3+46CsuLZ5cvvJeMNNCnc=|)
+     (c
+      |CIPwAAO8Vmj0/BfCtsg+35+r94jwxGYHZ63RsqyNxbvkAO6xPqSht8/v
+      zdR93eX5B9ZKBQg1HHWCsHbqQtmNLQ==|)))
+
+   or
+
+   {KDExOnByaXZhdGUta2V5KDEzOnJzYS1wa2NzMS1tZDUoMTplMToDKSgxOm4
+   xMjk6ANHCG85jXFGmicr3MGPj53FYYSY1aWAue6PKnpFErHhKMJa4HrK4WSK
+   TOYTTlapRznnELD2D7lWd3Q8PD0lyi1NJpNzMkxQVHrrAnIQoczeOZuiz/yY
+   VDzJ1DdiImixyb/Jyme3D0UiUXhd6VGAz0x0cgrKefKnmjy410Kro3uW1KSg
+   xOmQxMjk6AIvWvTRCPYvEW9ykyu1CmkuQQMQjm5V0Um0xvwuDHaWGyw8lacx
+   65hcM0QM3uRw2iaaCyCkCnuO+k19fX4ZMXOD7cLN/Qrql8Efx5mczcoGN+Eo
+   6FF+cvgXfupe1VM6PmJdFIauJerTHUOlPrI12N+NnAL7CvU6X1nhOnf/Z77i
+   zKSgxOnA2NToA96yNnyArhEZXlCzV4JEBWnuZVuWB/XdHl/ACnDptNVbO6cj
+   CT/axKHLK2lz3R52v7QM/CV2e8RdNRjV1/QPA9ykoMTpxNjU6ANjPQe6O0Jf
+   v90GWE3q2c9724AX7FKx64g2F8lxgiWW0QKEeqiWiiEDx7qh0lLrhmBT+VXE
+   DFRG2LHmuNSTzj7MpKDE6YTY1OgClHbO/asethDpiyI6VtgDm/RDkmQFTpNp
+   lSqxoJvN45InxMIGKpHYa9zHm6KTaaR/zV39bk79LZN4uzk6orStPKSgxOmI
+   2NToAkIor9F81up/6K7liUc736fnqrqdjHadBXllMPZWw7ngrFhRxbmxa1fa
+   fGvhjJ0EQDf7joKy4tnly+8l4w00KdykoMTpjNjQ6CIPwAAO8Vmj0/BfCtsg
+   +35+r94jwxGYHZ63RsqyNxbvkAO6xPqSht8/vzdR93eX5B9ZKBQg1HHWCsHb
+   qQtmNLSkpKQ==}
+
+   where a, b and c are CRT parameters.
+
+
+
+
+3.8.1.2 DSA key format
+
+   The following is a DSA signature key, shown in advanced transport
+   format:
+
+   (public-key
+    (dsa-sha1
+     (p
+      |AMxZt4PXzxBFGaF5r+cGpXQzNXCHjjk1awgnr4LCzXYbC97QVXi/Xes1
+      k28t0YcDlon56Yut0lTz39fziBpHbGBfc1LvOgW1P5MIa1W8eM3UXi4dz
+      WjWtjCn/QM2s33qyELDsCmgAeKg3sVygjKavNgZiSxf44R7RcIEnZBxkc
+      N/|)
+     (g
+      |fbT/lMbMgBWb81X2kRyklLLO/TamsDbLCyp2esdrf/3771RKgsI1RZTW
+      MxIpR51D6maNNpEywxhy4L8isXFXplysrAMCfDjpaUCowhQNSDRT8Yzyg
+      xZHJpZIU8it+QtLc4fIxA/qSqFL4N3fTIe7xApQlmmG9bI2lgBlZbi1/OU
+
+
+Ellison, et al.                                                [Page 16]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+      =|)
+     (q |AP9n7Cy++blLMxOaB0ML3Z3Cc+qh|)
+     (y
+      |ALpgrX32c8zRlqBSBMtvJzYwrXXpCj3oqeevPna/9zND2LX7wVZd1c9K
+      6ZxmQCqxDqGl/anDVToNAnlzr2btlS32cymsxpEm8bIlAJ6Jk4clT3Nrx
+      uTDRft/W+rgvndiK8fEmtNZ2iaYgAKoM2M3zbij6Ts1H0FfjODHZrtULy
+      NB|)))
+
+
+   For actual use, the key is held and presented in canonical form the
+   base64 encoding of which is:
+
+   {KDEwOnB1YmxpYy1rZXkoODpkc2Etc2hhMSgxOnAxMjk6AMxZt4PXzxBFGaF
+   5r+cGpXQzNXCHjjk1awgnr4LCzXYbC97QVXi/Xes1k28t0YcDlon56Yut0lT
+   z39fziBpHbGBfc1LvOgW1P5MIa1W8eM3UXi4dzWjWtjCn/QM2s33qyELDsCm
+   gAeKg3sVygjKavNgZiSxf44R7RcIEnZBxkcN/KSgxOmcxMjg6fbT/lMbMgBW
+   b81X2kRyklLLO/TamsDbLCyp2esdrf/3771RKgsI1RZTWMxIpR51D6maNNpE
+   ywxhy4L8isXFXplysrAMCfDjpaUCowhQNSDRT8YzygxZHJpZIU8it+QtLc4f
+   IxA/qSqFL4N3fTIe7xApQlmmG9bI2lgBlZbi1/OUpKDE6cTIxOgD/Z+wsvvm
+   5SzMTmgdDC92dwnPqoSkoMTp5MTI5OgC6YK199nPM0ZagUgTLbyc2MK116Qo
+   96Knnrz52v/czQ9i1+8FWXdXPSumcZkAqsQ6hpf2pw1U6DQJ5c69m7ZUt9nM
+   prMaRJvGyJQCeiZOHJU9za8bkw0X7f1vq4L53YivHxJrTWdommIACqDNjN82
+   4o+k7NR9BX4zgx2a7VC8jQSkpKQ==}
+
+   The private DSA key differs from the public by the inclusion of the
+   secret x value:
+
+   (private-key
+    (dsa-sha1
+     (p
+      |AMxZt4PXzxBFGaF5r+cGpXQzNXCHjjk1awgnr4LCzXYbC97QVXi/Xes1
+      k28t0YcDlon56Yut0lTz39fziBpHbGBfc1LvOgW1P5MIa1W8eM3UXi4dz
+      WjWtjCn/QM2s33qyELDsCmgAeKg3sVygjKavNgZiSxf44R7RcIEnZBxkc
+      N/|)
+     (g
+      |fbT/lMbMgBWb81X2kRyklLLO/TamsDbLCyp2esdrf/3771RKgsI1RZTW
+      MxIpR51D6maNNpEywxhy4L8isXFXplysrAMCfDjpaUCowhQNSDRT8Yzyg
+      xZHJpZIU8it+QtLc4fIxA/qSqFL4N3fTIe7xApQlmmG9bI2lgBlZbi1/OU
+      =|)
+     (q |AP9n7Cy++blLMxOaB0ML3Z3Cc+qh|)
+     (y |...|)
+     (x |...|)))
+
+
+
+
+3.8.1.3 Elliptic Curve DSA key format
+
+   The elliptic curve versions of DSA introduce complexities not present
+   in the normal DSA because: (1) it is popular to implement elliptic
+
+
+Ellison, et al.                                                [Page 17]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   curve algorithms over finite fields of the form GF(2^m), not just
+   GF(p), and (2) it is also popular to compress curve point
+   representations, so that the point needs decompression before it can
+   be used.  There is a further complication introduced in the case of
+   binary finite fields in that one can choose difference bases over
+   which to express the bit string that represents a value in that
+   field.
+
+   All of these choices need to be captured and expressed in the public
+   key definition.  The options available are to encode them in the
+   public key algorithm ID and/or to have extra parameters for each of
+   the subfields representing a field element.
+
+   **************************************
+
+   Invent a scheme here and pass it by Certicom and Burt -- to define S-
+   expressions for field element, compressed EC point, basis choice, EC
+   curve, ....  Show S-expressions for curve over both fields.
+
+   ****************************************
+
+
+
+3.8.2 <hash>
+
+   <hash>:: "(" "hash" <hash-alg-name> <hash-value> <uris>? ")" ;
+
+   A <hash> object gives the hash of some other object.  For example,
+   the public key given above has the following hashes:
+
+   (hash md5 #9710f155723bc5f4e0422ea53ff7c495#)
+   {KDQ6aGFzaDM6bWQ1MTY6lxDxVXI7xfTgQi6lP/fElSk=}
+
+   (hash sha1 #1a6f6d62 1abd4476 f16d0800 fe4c32d0 6ff62e93#)
+   {KDQ6aGFzaDQ6c2hhMTIwOhpvbWIavUR28W0IAP5MMtBv9i6TKQ==}
+
+
+
+3.8.3 <signature>
+
+   <signature>:: "(" "signature" <hash> <principal> <sig-val> ")" ;
+
+   A signature object is typically used for a certificate body and
+   typically follows that <cert> object in a <sequence>.  One can also
+   sign objects other than certificate bodies, of course.  For example,
+   one can form the signature of a file.
+
+
+
+
+
+
+Ellison, et al.                                                [Page 18]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+3.8.3.1 <sig-val>
+
+   <sig-val>:: "(" <pub-sig-alg-id> <sig-params> ")" ;
+   <sig-params>:: <byte-string> | <s-expr>+ ;
+
+   <sig-params> depends on the <pub-sig-alg-id>, the verification
+   algorithm of the public key being used to verify this signature.
+
+   For the RSA algorithm, <sig-params> is a single <integer>.
+
+   For DSA, <sig-params> is two S-expressions:
+
+    (r <integer>) (s <integer>)
+
+   For other algorithms, the signature parameter structure will have to
+   be defined when the algorithm is defined.
+
+
+
+3.8.3.2 Sample signatures
+
+   (signature
+    (hash sha1 |UNGhcpNFWg5UhtoV2yxV6wPMJPA=|)
+    (public-key
+     (rsa-pkcs1-sha1
+      (e #11#)
+      (n
+       |AMC7wEqs+AjILPsUmS+R1PV9OihhqSTfmdLo9Y2hdj7+2f31qxXsMpx
+       ZedTxmcW9RKsf7dRjnRTxY51/MOIn0isY3DV3fMiaT8NUrjf+jEjF91V
+       1HtCPn7+MHTv/quWToc9/n4BhVDxH1IspFteoW0RHtZqOUfQcSQNswt7
+       yrXFN|)))
+    (rsa-pkcs1-sha1
+     |UN0g7krgm6Xq6vvws+oDZes9hy0pwDV9gVjuUV+uRC8Y7TDh1JPfv2dhX
+     BXqgERa3q99GHxgyjoDgfFgl/fAOplwz3vySmnATInrtCMxGdXgZlQ/SQ5
+     xFXz3VlKQHgak0rK4xpZEbsR6YMggcGK7NjZWTfNK0q8v4FSSD9UDkxk=|
+     ))
+
+   (signature
+    (hash sha1 |UNGhcpNFWg5UhtoV2yxV6wPMJPA=|)
+    (public-key
+     (dsa-sha1
+      (p
+       |AMxZt4PXzxBFGaF5r+cGpXQzNXCHjjk1awgnr4LCzXYbC97QVXi/Xes
+       1k28t0YcDlon56Yut0lTz39fziBpHbGBfc1LvOgW1P5MIa1W8eM3UXi4
+       dzWjWtjCn/QM2s33qyELDsCmgAeKg3sVygjKavNgZiSxf44R7RcIEnZB
+       xkcN/|)
+      (g
+       |fbT/lMbMgBWb81X2kRyklLLO/TamsDbLCyp2esdrf/3771RKgsI1RZT
+       WMxIpR51D6maNNpEywxhy4L8isXFXplysrAMCfDjpaUCowhQNSDRT8Yz
+       ygxZHJpZIU8it+QtLc4fIxA/qSqFL4N3fTIe7xApQlmmG9bI2lgBlZbi
+
+
+Ellison, et al.                                                [Page 19]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+       1/OU=|)
+      (q |AP9n7Cy++blLMxOaB0ML3Z3Cc+qh|)
+      (y
+       |ALpgrX32c8zRlqBSBMtvJzYwrXXpCj3oqeevPna/9zND2LX7wVZd1c9
+       K6ZxmQCqxDqGl/anDVToNAnlzr2btlS32cymsxpEm8bIlAJ6Jk4clT3N
+       rxuTDRft/W+rgvndiK8fEmtNZ2iaYgAKoM2M3zbij6Ts1H0FfjODHZrt
+       ULyNB|)))
+    (dsa-sha1
+     (r |APyNegTrlzLMCCcMRWoMlnKAOHIu|)
+     (s |AIPV/423068nuoNmoQQupyW3x+S1|)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ellison, et al.                                                [Page 20]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+4. Authorization Certificate
+
+   <cert>:: "(" "cert" <version>? <cert-display>? <issuer> <issuer-loc>?
+   <subject> <subject-loc>? <deleg>? <tag> <valid>? <comment>? ")" ;
+
+   The basic certificate form is an authorization certificate.  It
+   transfers some specific authorization or permission from one
+   principal to another.  The fields defined here assume one wants SPKI
+   certificates without SDSI name definition.  Some of those field
+   definitions are modified in Section 5, to provide name definition.
+
+   Because a certificate merely transfers authorizations, rather than
+   creating them, the form we call ACL-entry is also defined below to
+   inject authorizations into a chain of certificates.  An ACL entry
+   lives on the machine of the verifier, leading to the observation that
+   all authorization flow is in a circuit -- from the verifying
+   machine's ACL, possibly through certificates and then back to the
+   verifying machine.  Alternatively, one might say that the only root
+   of an authorization certificate chain is the verifier.
+
+
+
+4.1 <version>
+
+   <version>:: "(" "version" <integer> ")" ;
+
+   Version numbers are alphanumeric strings.  If the <version> field is
+   missing from an object, it is assumed to be (version "0"), which is
+   the version of all objects in this draft.  Elaboration of version
+   numbers, possibly with multiple fields, are left for later to define.
+
+   A certificate containing an unrecognized version number must be
+   ignored.
+
+
+
+4.2 <cert-display>
+
+   <cert-display>:: "(" "display" <byte-string> ")" ;
+
+   This optional field gives a display hint for the entire certificate.
+   This display parameter does not affect certificate chain reduction,
+   but is provided to aid user-interface software in certificate
+   display.
+
+   At this time, we have no such hints defined.  This field is up to
+   developers to define as they see fit.  For verifiers of certificates,
+   this field is treated as a comment.
+
+
+
+
+Ellison, et al.                                                [Page 21]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+4.3 <issuer>
+
+   <issuer>:: "(" "issuer" <principal> ")" ;
+
+   <principal>:: <pub-key> | <hash-of-key> ;
+
+   <hash-of-key> might be the preferred <principal>, not merely for size
+   but also in case one is using small RSA keys and protecting them from
+   cryptanalysis by keeping them secret.
+
+
+
+4.4 <issuer-loc>
+
+   <issuer-loc>:: "(" "issuer-info" <uris> ")" ;
+
+   The (issuer-info ) object provides the location of the certificate(s)
+   by which the issuer derives the authority to pass along the
+   authorization in the present <cert>.  We expect the prover (the
+   calling client) to track down such other certificates and provide
+   them to the verifier (the called server), but we allow this
+   information in the certificate to simplify that process for the
+   prover.
+
+
+
+4.5 <subject>
+
+   <subject>:: "(" "subject" <subj-obj> ")" ;
+
+   <subj-obj>:: <principal> | <name> | <obj-hash> | <keyholder> | <subj-
+   thresh> ;
+
+   In the most basic form,
+
+   <subj-obj>:: <principal> ;
+
+   and one may make an SPKI implementation with only that definition, in
+   case names are considered unnecessary for the intended application.
+
+   However in full-blown implementations, the subject may also be a
+   name, representing a group of principals or a delayed binding to some
+   one principal, the hash of an object, or a K-of-N threshold of
+   principals (in which case, the authorization being granted to the
+   subject is being spread out among multiple parties that must
+   cooperate to exercise that authorization).  The <keyholder> case is
+   special and of little interest to verifier code, since it is used in
+   a certificate that is a message to a human.
+
+   See section 5 for the definition of <name>.
+
+
+Ellison, et al.                                                [Page 22]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+4.5.1 <obj-hash>
+
+   <obj-hash>:: "(" "object-hash" <hash> ")" ;
+
+   This option for a (subject ) refers to an object other than a
+   <principal>.  One might use this form to assign attributes to an
+   object (a file, a web page, an executable program, ...).
+
+
+
+4.5.2 <keyholder>
+
+   <keyholder>:: "(" "keyholder" <keyholder-obj> ")" ;
+   <keyholder-obj>:: <principal> | <name> ;
+
+   This form of subject refers to the flesh and blood (or iron and
+   silicon) holder of the referenced key.  A <cert> with such a subject
+   is saying something about that person or machine -- such as its
+   location, its address, its age, its weight, its height, its picture,
+   ....  Such a certificate is most probably a message to a human rather
+   than for use in a verification process, but we anticipate
+   applications that will appreciate the machine-readable format of such
+   information.
+
+
+
+4.5.3 <subj-thresh>
+
+   <subj-thresh>:: "(" "k-of-n" <k-val> <n-val> <subj-obj>* ")" ;
+
+   where K < N, and there are N <subj-obj> subjects listed.
+
+   A threshold subject, introduced by Tatu Ylonen for SPKI and by Rivest
+   and Lampson in SDSI 1.0, specifies N subjects for a certificate or
+   ACL entry, of which K must agree before the permission is passed
+   along.
+
+   The actual intent is to insure that there are K distinct paths
+   passing permission between the verifier's ACL and the prover's
+   request.  These multiple paths fork and join, so the k-of-n construct
+   could theoretically be part of either the Subject or the Issuer.
+   Since an ACL might want to specify these multiple paths (and an ACL
+   has no Issuer) and since a certificate is signed by a single Issuer,
+   we have chosen to specify the branching at the Subject.
+
+   A certificate or ACL with a k-of-n Subject does not delegate
+   permission to any of those subjects, alone.  Rather, each of these
+   subjects receives a share of the delegated permission.  Only if at
+   least K of the N subjects show certificate paths which converge on a
+   single target Subject during reduction, is that permission
+
+
+Ellison, et al.                                                [Page 23]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   transmitted to the target.  If fewer than K such paths can be shown,
+   then the permission is not delegated.
+
+   This construct is far from simple.  However, it is extremely useful.
+   It has been demanded by a number of initial customers of SPKI
+   certificates.  It also solves a number of sticky political problems.
+   This section lays out the specification of K-of-N subjects.  The
+   rules for reducing 5-tuples containing such entries are given later.
+
+   Examples of the use of K-of-N permission propagation include:
+
+   1.  co-signing of electronic corporate checks or purchase orders
+       above a certain amount
+
+   2.  establishing the root DNSSEC key, bypassing the political battles
+       which would inevitably ensue if one country were to hold *the*
+       root key for the entire world.  The same goes for any root key.
+
+   3.  establishing a root key for a trusted service, via multiple
+       algorithms.  That is, one could have three root keys, using RSA,
+       DSA and Elliptic Curve signature algorithms (for example), and
+       require that two of them yield a valid chain.  This way, if
+       someone were to break an entire algorithm (find a way to invert
+       the algorithm), much less if someone were to break one key in the
+       set of three, the root remains securely established.  At the same
+       time, there is fault tolerance.  In case one of the keys is
+       revoked, the following certificates remain empowered.
+
+   4.  using online and off-line issuers.  One could have a permission
+       established by an off-line key issuing a long-lived certificate
+       and echoed by an online automated server, issuing short-lived
+       certificates.  The delegation of this permission could require
+       both before the eventual subject gets the permission.  This can
+       be achieved through the use of (online ) tests in a long-lived
+       certificate, but the K-of-N subject mechanism may be cleaner.
+
+   5.  ultra-secure applications.  There are many applications which
+       follow the nuclear weapons launch scenario.  That is, multiple
+       agreement is required before the permission is granted.
+
+
+
+4.6 <subject-loc>
+
+   <subject-loc>:: "(" "subject-info" <uris> ")" ;
+
+   This optional field provides the location of information about the
+   subject.  For example, if the subject is a hash of a key, this might
+   provide the location of the key being hashed.  If the subject is a
+   SDSI name, it might give the location of a SDSI name certificate
+
+
+Ellison, et al.                                                [Page 24]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   server.
+
+
+
+4.7 <deleg>
+
+   <deleg>:: "(" "propagate" ")" ;
+
+   This optional field, if present, notes that the <subject> has not
+   only the permission given in the <cert>'s <tag> field but also the
+   permission to delegate that (or some portion of it) to others.
+
+
+
+4.8 <tag>
+
+   <tag>:: "(" "tag" "(*)" ")" | "(" "tag" <tag-expr>  ")" ;
+
+   The form "(tag (*))" means "all permissions".
+
+   The simplest tag is an S-expression with no *-forms.  This is a
+   specific permission which must be passed along and used intact.
+
+   A tag with *-forms represents a set of specific permissions.  Any
+   subset of such a set of permissions may be delegated by a principal
+   empowered to delegate.  When one is reducing the 5-tuples from such
+   certificates, one intersects the adjacent tag sets to find a
+   resulting tag set.
+
+   All tags are assumed to be positional.  That is, parameters in a tag
+   have a meaning defined by their position.
+
+   All tags are assumed to be extendable.  That is, if one adds a field
+   to the end of a tag definition, one is restricting the permission
+   granted.  [If the field added makes the tag invalid, then one has
+   restricted the original permission to zero.]
+
+   See the full BNF section for the full tag body BNF, including
+   specification of *-forms.
+
+
+
+4.9 <valid>
+
+   The <valid> field gives validity dates and/or online test information
+   for the certificate.
+
+   <valid>:: "(" "valid" <not-before>? <not-after>? <online-test>* ")" ;
+
+   <not-after>:: "(" "not-after" <date> ")" ;
+
+
+Ellison, et al.                                                [Page 25]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   <not-before>:: "(" "not-before" <date> ")" ;
+
+   The not-after and not-before options are self-explanatory.  If either
+   is missing, then the certificate is assumed valid for all time in
+   that direction.  For example, one might omit the <not-before> field,
+   if that date would be before or at the time of creation of the
+   certificate, unless one wanted to note the creation time for
+   documentation purposes.
+
+
+
+4.9.1 <date>
+
+   <date>:: <byte-string> ;
+
+   A date field is an ASCII byte string of the form:
+
+   YYYY-MM-DD_HH:MM:SS
+
+   always UTC.  For internal use, it is treated as a normal byte string.
+   For example, "1997-07-26_23:15:10" is a valid date.  So is
+   "2001-01-01_00:00:00".  <date> fields are compared as normal ASCII
+   byte strings since one never needs to compute the size of a time
+   interval to test validity -- only determine greater-than, less-than
+   or equal.
+
+
+
+4.9.2 <online-test>
+
+   <online-test>:: "(" "online" <online-type> <uris> <principal>
+   <online-id> <s-part>* ")" | "(" "online" "new-cert" <uris> ")" ;
+   <online-type>:: "crl" | "reval" | "one-time" ;
+   <online-id>:: "(" "id" <byte-string> ")" ;
+
+   The online test option allows a certificate to be backed up by finer
+   grain validity testing.  The online test specification, above, is
+   present in a certificate and shows that the certificate has a finer-
+   grain validity mechanism.
+
+   The reply from an online test is a digitally signed object, validated
+   by the <principal> given in the test specification.  That object
+   includes validity dates, so that once one has the online test
+   response, its validity dates can be intersected with the parent
+   certificate's validity dates to yield the current working validity
+   dates for the certificate.
+
+   The crl form tells the verifier (or prover, who fetches this
+   information for the verifier, in our standard model), the current
+   list of invalid certificates.  If the present certificate is not on
+
+
+Ellison, et al.                                                [Page 26]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   that list, then the certificate is presumed valid.
+
+   The re-validate form is the logical opposite of the crl.  It tells
+   the verifier a list of valid certificates or, more likely, just that
+   the current certificate is valid.
+
+   The one-time form is a re-validate form without validity dates.  It
+   must be fetched by the verifier, rather than the prover, since it is
+   valid only for the current verification step.  [In effect, it has a
+   validity period of just "now".]  The process of getting this one-time
+   revalidation involves sending a unique (and partly random) challenge
+   which is returned as part of the signed response.
+
+   The new-cert form requests a new copy of the certificate in question.
+   The assumption is that these certificates are short-lived and that
+   the one triggering the new-cert fetch had expired.
+
+   If there are multiple URIs specified, any one of them can be used.
+
+   If the URI specifies an HTTP connection to the online test, then that
+   URI can provide all parameters needed (e.g., a hash of the
+   certificate in question), but in other cases, one might need to list
+   such parameters in the optional <s-part>s.
+
+   See section 7 for a full description of online test reply formats.
+
+
+
+4.9.3 Online test protocols
+
+   The protocol used for these online tests is not fully specified here.
+   One can use passive web pages and have the URI fetch the online test
+   result directly.  This works for everything but one-time
+   revalidations.
+
+   One can use CGI-driven HTTP fetches, and allow the CGI code to
+   generate or fetch the online test result specifically for the
+   certificate in question.  The URI given in <uris> would include the
+   parameters to that CGI code, so that again the user of the
+   certificate would see just a web page to fetch by HTTP.
+
+   If there are other servers and protocols defined, then those
+   definitions will determine how online test results are requested and
+   retrieved.  One-time tests fall into this category.  The fetch of a
+   one-time test result must be done by the verifying code, while all
+   other tests fetches can be done by the prover, prior to submitting a
+   (sequence...) to the verifier.  That one-time test must include a
+   nonce provided by the verifier, to prevent replay attacks, but it
+   will probably also include transaction data (such as an amount of
+   money being debited from a bank account) and therefore be
+
+
+Ellison, et al.                                                [Page 27]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   application-specific.
+
+
+
+4.10 <comment>
+
+   <comment>::  "(" "comment" <byte-string> ")" ;
+
+   This optional field allows the issuer to attach comments meant to be
+   ignored by any processing code but presumably to be read by a human.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ellison, et al.                                                [Page 28]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+5. Name certificate
+
+   Names are defined for human convenience.  For actual trust engine
+   computations, names must be reduced to keys.  This section gives the
+   form of a name, a name certificate and the rules for reducing name
+   certificates to simple mappings from name to key.
+
+   Note that we do not include an <issuer-loc> option for a name
+   certificate.  The issuer needs no authorization in order to create
+   names.  Every issuer has that right.
+
+   Similarly, there is no "certification practice statement" for these
+   name certificates.  Nothing is implied by a name certificate about
+   the principal(s) being named.  A name can be an arbitrary byte string
+   assigned by the issuer and is intended to be meaningful only to that
+   issuer, although other parties may end up using it.  A name is not
+   required or expected necessarily to conform to any name string in the
+   physical world or in any other issuer's name space.
+
+   That said, it is possible to map name certificates generated by a
+   commercial Certification Authority into SDSI names and thus refer to
+   keys defined under that process from within SPKI/SDSI certificates.
+
+
+
+5.1 Name certificate syntax
+
+   A name certificate has the form:
+
+   (cert
+    (issuer (name <principal> <name>))
+    <subject>
+    <valid>
+   )
+
+   <name-cert>:: "(" "cert" <version>? <cert-display>? <issuer-name>
+   <subject> <valid>? <comment>? ")" ;
+
+   <issuer-name>:: "(" "issuer" "(" "name" <principal> <byte-string> ")"
+   ")" ;
+
+   That form maps directly into the intermediate form needed for name
+   string reduction.  The name must be under the <principal> of the
+   certificate issuer, and under this syntax the certificate issuer
+   <principal> is taken from the (name..) structure.
+
+   In a name certificate, the (tag) field is omitted and (tag (*)) is
+   assumed.  There is also no <deleg> field.  A name definition is like
+   an extension cord, passing everything the name is granted through to
+   the subject.
+
+
+Ellison, et al.                                                [Page 29]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   The subject is unrestricted.  It is what you are trying to name.
+
+   If there is more than one name certificate for a given name, with
+   different subjects, then that name is a group.  More specifically,
+   all name certificates define groups, many of which will have only one
+   member.  A multi-member group is like a multi-plug extension cord,
+   passing everything the name is granted through to any and all of its
+   subjects.
+
+
+
+5.2 <name>
+
+   The <name> form is a option for <subject>, when one wants to generate
+   a certificate granting authorization to either a named group of
+   principals or to a principal that has not been defined yet.  This can
+   be either a relative name or a fully-qualified name.
+
+   <name>:: <relative-name> | <fq-name> ;
+
+   <relative-name>:: "(" "name" <names> ")" ;
+
+   <fq-name>:: "(" "name" <principal> <names> ")" ;
+
+   <names>:: <byte-string>+ ;
+
+   A relative name is defined only with respect to an issuer and should
+   show up only in a certificate, borrowing the <principal> from the
+   issuer of that certificate.  For evaluation purposes, the relative
+   name is translated into a fully-qualified name before reduction.
+
+   Unlike the <issuer-name>, which is forced to be a name in the
+   issuer's name space, the subject name can be in any name space.
+
+
+
+5.3 Name reduction
+
+   Given the name definition
+
+   (cert
+    (issuer
+     (name (hash md5 |Txoz1GxK/uBvJbx3prIhEw==|) fred))
+    (subject (hash md5 |Z5pxCD64YwgS1IY4Rh61oA==|))
+    (not-after "2001-01-01_00:00:00"))
+
+   {KDQ6Y2VydCg2Omlzc3Vlcig0Om5hbWUoNDpoYXNoMzptZDUxNjpPGjPUbEr
+   +4G8lvHemsiETKTQ6ZnJlZCkpKDc6c3ViamVjdCg0Omhhc2gzOm1kNTE2Ome
+   acQg+uGMIEtSGOEYetaApKSg5Om5vdC1hZnRlcjE5OjIwMDEtMDEtMDFfMDA
+   6MDA6MDApKQ==}
+
+
+Ellison, et al.                                                [Page 30]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   the name
+
+   (subject (name (hash md5 |Txoz1GxK/uBvJbx3prIhEw==|) fred sam george
+   mary))
+
+   reduces to
+
+   (subject (name (hash md5 |Z5pxCD64YwgS1IY4Rh61oA==|) sam george
+   mary))
+
+   recursing until the name reduces to a principal.  In non-pathological
+   cases this is the only reduction rule needed.
+
+   It is possible for someone to generate a trouble-making name
+   certificate, such as:
+
+   (cert
+    (issuer
+     (name (hash md5 |Txoz1GxK/uBvJbx3prIhEw==|) fred))
+    (subject (name fred sam))
+    (not-after "2001-01-01_00:00:00"))
+
+   in which case a naive reduction would grow without bound.  This kind of
+   boundless growth is not possible under the name reduction rules given
+   in the theory document.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ellison, et al.                                                [Page 31]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+6. ACL and Sequence formats
+
+   ACL and sequence structures are in the grey area.  ACLs are private to
+   one developer or application.  Sequences can be thought of as part of
+   the protocol using certificates.
+
+
+
+6.1 <acl>
+
+   <acl>:: "(" "acl" <version>? <acl-entry>* ")" ;
+
+   <acl-entry>:: "(" "entry" <subj-obj> <deleg>? <tag> <valid>?
+   <comment>? ")" ;
+
+   An ACL is a list of assertions: certificate bodies which don't need
+   issuer fields or signatures because they are being held in secure
+   memory.  Since the fields of the ACL are fields of a <cert>, we will
+   not repeat those common field definitions here.  Since an ACL is
+   not communicated to others, developers are free to choose their
+   own formats.
+
+   If all the optional fields are left out, the subject is given the
+   permission specified in <tag>, without permission to delegate it, with
+   no expiration date or condition (until the ACL is edited to remove the
+   permission).
+
+   For example:
+
+   (acl
+    (entry
+     (name (hash md5 |p1isZirSN3CBscfNQSbiDA==|) sysadmin/operators)
+     (tag (ftp db.acme.com root)))
+    (entry
+     (hash md5 |M7cDVmX3r4xmab2rxYqyNg==|)
+     (tag (ftp db.acme.com root)))
+    (entry
+     (hash md5 |kuXyqx8jYWdZ/j7Vffr+yg==|)
+     (propagate)
+     (tag (http http://www.internal.acme.com/accounting/)))
+   )
+
+   {KDM6YWNsKDU6ZW50cnkoNDpuYW1lKDQ6aGFzaDM6bWQ1MTY6p1isZirSN3C
+   BscfNQSbiDCkxODpzeXNhZG1pbi9vcGVyYXRvcnMpKDM6dGFnKDM6ZnRwMTE
+   6ZGIuYWNtZS5jb200OnJvb3QpKSkoNTplbnRyeSg0Omhhc2gzOm1kNTE2OjO
+   3A1Zl96+MZmm9q8WKsjYpKDM6dGFnKDM6ZnRwMTE6ZGIuYWNtZS5jb200OnJ
+   vb3QpKSkoNTplbnRyeSg0Omhhc2gzOm1kNTE2OpLl8qsfI2FnWf4+1X36/so
+   pKDk6cHJvcGFnYXRlKSgzOnRhZyg0Omh0dHA0MDpodHRwOi8vd3d3LmludGV
+   ybmFsLmFjbWUuY29tL2FjY291bnRpbmcvKSkpKQ==}
+
+
+
+Ellison, et al.                                                [Page 32]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+6.2 <sequence>
+
+   <sequence>:: "(" "sequence" <seq-ent>* ")" ;
+   <seq-ent>:: <cert> | <pub-key> | <signature> | <crl> | <delta-crl> |
+   <reval> | <op> ;
+   <op>:: <hash-op> | <general-op> ;
+   <hash-op>:: "(" "do" "hash" <hash-alg-name> ")" ;
+   <general-op>:: "(" "do" <byte-string> <s-part>* ")" ;
+
+   At present, only the hash operation is defined.  It computes the
+   indicated hash of the last key or cert in the sequence.
+
+   A <sequence> is an ordered sequence of objects that the verifier is
+   to consider when deciding to grant access.  By reducing certificates
+   in the sequence, the verifier will establish that the final subject
+   (key or object) has been granted authority through the sequence.
+
+
+   The sequence can also contain instructions to the verifier, in the
+   form of opcodes.  At present the only opcode defined is "hash" --
+   meaning, that the previous item in the sequence (the last one read
+   in) is to be hashed by the given algorithm and saved, indexed by that
+   hash value.  Presumably, that item (certificate body or public key,
+   for example) is referred to by hash in some subsequent object.
+
+   At this time, we assume that <signature> does double duty, calling
+   for the hash of the preceding item.  However, it would not hurt to
+   use an explicit <hash-op> prior to a <signature>.
+
+   If an object will be referenced by different hashes, it can be
+   followed by multiple <hash-op>s.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ellison, et al.                                                [Page 33]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+7. online test reply formats
+
+   ********** should I have an ID for a CRL or reval thread or let the
+   public key signing the instrument be the ID for it? ******
+
+   An online test results in a digitally signed object carrying its own
+   date range, explicitly or implicitly.  That object specifies either a
+   list of invalid certificates or that a given certificate (or list of
+   certificates) is still valid.
+
+   This section does not give details of protocols for connecting to
+   online servers or transmitting messages between them.
+
+   It is assumed that, except for the one-time test, the prover and not
+   the verifier will fetch any online-test results and then provide
+   those results in the <sequence> being handed to the verifier.  A one-
+   time test result must contain a nonce generated by the verifier.
+   Whether the verifier contacts the revalidation center directly or via
+   the prover depends on the details of the application and protocol
+   between the prover and verifier.
+
+   Each of these instruments contains a <valid-basic> time interval.
+   The instrument is valid only during that interval and a sequence of
+   instruments must be issued for non-overlapping intervals, so that the
+   user of the instrument knows when it has the current one.
+
+
+
+7.1 CRL and delta-CRL
+
+   If one wants to provide CRLs, and that CRL grows, then one may prefer
+   to send only a delta CRL.
+
+   <crl>:: "(" "crl" <version>? <cancel-list> <valid-basic> ")" ;
+   <cancel-list>:: "(" "canceled" <hash>* ")" ;
+   <delta-crl>:: "(" "delta-crl" <version>? <hash-of-pred> <cancel-list>
+   <valid-basic> ")" ;
+   <hash-of-pred>:: <hash> ;
+
+   The <hash-of-pred> is the hash of the predecessor CRL or delta-CRL,
+   that this one is modifying.  For convenience, that <hash> should
+   probably also have a URI pointing the user to that predecessor.
+
+   The <crl> or <delta-crl> must be signed by the principal indicated in
+   the <online-test> field that directed the CRL to be fetched.
+
+   The CRL request can be a straight HTTP transaction, using the URI
+   provided in the certificate, but we do not specify online protocols
+   in this draft.
+
+
+
+Ellison, et al.                                                [Page 34]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   The algorithm for choosing between computation and delivery of delta
+   versus full CRL is left open.  This will depend heavily on
+   performance analysis of actual experience for a given validity
+   center.
+
+
+
+7.2 Revalidation
+
+   <reval>:: "(" "reval" <version>? <reval-list> <valid-basic> ")" ;
+   <reval-list>:: "(" "valid" <hash>+ ")" ;
+
+   This construct is the logical opposite of a CRL.  With a reval
+   instrument, a certificate is valid if it is listed.
+
+   There is no delta-reval.  One does not need to search an entire list
+   and demonstrate that a given certificate is missing.  Therefore, if
+   the certificate in question shows up on a currently valid reval list,
+   then it is valid.
+
+   The <reval> must be signed by the principal indicated in the <online-
+   test> field that directed it to be fetched.
+
+
+
+7.3 One-time revalidation
+
+   For one-time revalidation, the verifier itself must fetch the (reval)
+   record, which will have the form:
+
+   <reval>:: "(" "reval" <version>? <subj-hash> <one-valid> ")" ;
+
+   <one-valid>:: "(" "one-time" <byte-string> ")" ;
+
+   where the byte string inside <one-valid> is one provided by the
+   caller, expected to be unique over time and unguessable -- e.g., a
+   large random number or random number plus sequence number.  This
+   reply should be signed by the <principal> indicated in the (online..)
+   field which directed it to be fetched.
+
+   This result corresponds to a 0-length validity interval of "now",
+   however the developer wishes to express that.
+
+
+
+
+
+
+
+
+
+
+Ellison, et al.                                                [Page 35]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+8. 5-Tuple Reduction
+
+   This section describes the operation of the trust evaluation
+   machinery assumed to be part of every verifier which accepts SPKI
+   certificates.  The inputs to that trust engine are 5-tuples and any
+   kind of certificate, not just SPKI, as well as Access Control List
+   (ACL) entries can be translated to 5-tuples so that they can all
+   participate in the trust computation.
+
+   A 5-tuple is an internal construct and therefore best described by a
+   programming language data structure.  A separate document will give
+   the 5-tuple reduction code and those data structures.
+
+   Name reduction is specified in section 5.3.  Therefore, in what
+   follows we assume all issuers and subjects are principals.  We also
+   assume that all principals are public keys.  It is an implementation
+   decision whether to store these as explicit keys, hashes of keys
+   (used as pointers) or addresses pointing to keys.
+
+
+
+8.1 <5-tuple> BNF
+
+   How a 5-tuple is represented and stored is up to the developer.  For
+   the sake of discussion, we assume a 5-tuple is a construct of the
+   form:
+
+   <5-tuple>:: <issuer5> <subject5> <deleg5> <tag-body5> <valid5> ;
+
+   <issuer5>:: <key5> | "self" ;
+
+   <subject5>:: <key5> | <obj-hash> | <keyholder> | <threshold-subj> ;
+
+   <deleg5>:: "t" | "f" ;
+
+   <key5>:: <pub-key> ;
+
+   <valid5>:: <valid-basic> | "null" | "now" ;
+
+   <tag-body5>:: <tag-body> | "null" ;
+
+   The extra option for issuer, "self", is provided for ACL entries.
+   The self referred to is the verifier, holding that ACL and doing the
+   verification of offered proofs.
+
+   The only 5-tuples that can mean anything to the verifier, after
+   reduction is done, are those with "self" as issuer.
+
+
+
+
+
+Ellison, et al.                                                [Page 36]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+8.2 Top level reduction rule
+
+   <i1,s1,d1,a1,v1> + <i2,s2,d2,a2,v2> yields <i1,s2,d2,a,v> if:
+   s1 = i2
+   d1 = "t"
+   a = the intersection of a1 and a2
+   v = the intersection of v1 and v2
+
+   Validity intersection involves normal intersection of date ranges, if
+   there are not-before or not-after fields in v1 or v2, and union of
+   online tests, if those are present in v1 or v2.  Each online test
+   includes a validity period, so there is a resulting validity interval
+   in terms of dates.  This can include the string "now", as the product
+   of a one-time online test result.  "now" intersects with any date
+   range to yield either "now" or "null".
+
+   The intersection of a1 and a2 is given below.  In the most basic
+   case,
+
+   If a1 is (tag (*)), a = a2.
+
+   If a2 is (tag (*)), a = a1.
+
+   If a1 == a2, a = a2.
+
+   Otherwise, a = "null" and the 5-tuple doesn't reduce.
+
+
+
+8.3 Intersection of tag sets
+
+   Two <tag> S-expressions intersect by the following rules.  Note that
+   in most cases, one of the two tag S-expressions will be free of
+   *-forms.  A developer is free to implement general purpose code that
+   does set-to-set reductions, for example, but that is not likely to be
+   necessary.
+
+    1. basic: if a1 == a2, then the result is a1.
+
+    2. basic: if a1 != a2 and neither has a *-form, then the result is
+        "null".
+
+    3. (tag (*)): if a1 == (tag (*)), then the result is a2.
+        If a2 == (tag (*)), then the result is a1.
+
+    4. (* set ...): if some <tag> S-expression contains a (* set )
+        construct, then one expands the set and does the intersection of
+        the resulting simpler S-expressions.
+
+    5. (* range ...): if some <tag> field compares a (* range ) to a
+
+
+Ellison, et al.                                                [Page 37]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+        <byte-string>, one does the specified range comparison and the
+        resulting field is the explicit one tested.  If the strings
+        being compared have unequal display types, then the result is
+        the empty set.
+
+    6. (* prefix ...): if some <tag> field compares a (* prefix ) to a
+        <byte-string>, then the result is the explicit string if the
+        test string is a prefix of it and otherwise "null".
+
+
+
+
+8.4 Reduction of (subject (threshold ..))
+
+   A separate document will give full algorithms for reduction of K-of-N
+   threshold subjects.  One general procedure is to make K copies of of
+   the 5-tuple containing the K-of-N subject and indicate which of those
+   subjects is being handled by that copy.  One then reduces that copy
+   as if it had a single subject.  One can stop the separate reductions
+   when all K of the reduced values have the same subject.  At that
+   point, the K reduced 5-tuples become a single 5-tuple.
+
+   The actual algorithm choices for doing this reduction depend on
+   whether one wants to reduce left-to-right or right-to-left and how
+   much storage a verifier has.
+
+
+
+8.7 Certificate Result Certificates
+
+   In cases where the verifier, Self, has access to a private key, once
+   it has reduced a chain of certificate bodies down to the form:
+
+   (Self,X,D,A,V)
+
+   it can sign that generated body, using its private key, producing an
+   SPKI certificate.  That certificate will have a validity period no
+   larger that of any certificate in the loop which formed it, but
+   during that validity period it can be used by the prover instead of
+   the full chain, when speaking to that particular verifier.  It is
+   good only at that verifier (or at another which trusts that verifier,
+   Self, to delegate the authorization A).  Therefore, one option by the
+   verifier is to sign and return the result 5-tuple to the caller for
+   this later use.
+
+   If it isn't important for any other verifier to accept this "result
+   certificate", it can even be signed by a symmetric key (an HMAC with
+   secret key private to the verifier), although such keys are not
+   defined in this standard.
+
+
+
+Ellison, et al.                                                [Page 38]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   The certificates which made up the loop forming this result 5-tuple
+   could have been of any variety, including X.509v1, X.509v3, SET or
+   DNSSEC.  They could also be PGP signed keys processed by an enriched
+   trust engine (one capable of dealing with the PGP web of trust
+   rules).  If the verifier, Self, were to be trusted to delegate the
+   resulting authorization, its certificate result certificate then
+   becomes a mapping of these other forms.  This may prove especially
+   useful if a given certificate chain includes multiple forms or if the
+   result certificate is to be used by a computationally limited device
+   (such as a Smart-Card) which can not afford the code space to process
+   some of the more complex certificate formats.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ellison, et al.                                                [Page 39]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+9. Full BNF
+
+   The following is the BNF of canonical forms and includes lengths for
+   each explicit byte string.  So, for example, "cert" is expressed as
+   "4:cert".
+
+
+
+9.1 Top Level Objects
+
+   The list of BNF rules that follows is sorted alphabetically, not
+   grouped by kind of definition.  The top level objects defined are:
+
+   <5-tuple>: an object defined for documentation purposes only.  The
+   actual contents of a 5-tuple are implementation dependent.
+
+   <acl>: an object for local use which might be implementation
+   dependent.  An ACL is not expected to be communicated from machine to
+   machine.
+
+   <crl>, <delta-crl> and <reval>: objects returned from online tests.
+
+   <sequence>: the object carrying keys, certificates and online test
+   results from prover to verifier.
+
+
+
+9.2 Alphabetical List of BNF Rules
+
+   <5-tuple>:: <issuer5> <subject5> <deleg5> <tag-body5> <valid5> ;
+   <acl-entry>:: "(" "entry" <subj-obj> <deleg>? <tag> <valid>?
+   <comment>? ")" ;
+   <acl>:: "(" "acl" <version>? <acl-entry>* ")" ;
+   <byte-string>:: <bytes> | <display-type> <bytes> ;
+   <bytes>:: <decimal> ":" {binary byte string of that length} ;
+   <cert-display>:: "(" "display" <byte-string> ")" ;
+   <cert>:: "(" "cert" <version>? <cert-display>? <issuer> <issuer-loc>?
+   <subject> <subject-loc>? <deleg>? <tag> <valid>? <comment>? ")" ;
+   <comment>::  "(" "comment" <byte-string> ")" ;
+   <crl>:: "(" "crl" <version>? <crl-hash-list> <valid-basic> ")" ;
+   <crl-hash-list>:: "(" "canceled" <hash>* ")" ;
+   <date>:: <byte-string> ;
+   <ddigit>:: "0" | <nzddigit> ;
+   <decimal>:: <nzddigit> <ddigit>* | "0" ;
+   <deleg5>:: "t" | "f" ;
+   <deleg>:: "(" "propagate" ")" ;
+   <delta-crl>:: "(" "delta-crl" <version>? <hash-of-crl> <crl-hash-
+   list> <valid-basic> ")" ;
+   <display-type>:: "[" <bytes> "]" ;
+   <dsa-sig-val>:: "(" "dsa-sha1-sig" "(" "r" <byte-string> ")" "(" "s"
+
+
+Ellison, et al.                                                [Page 40]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   <byte-string> ")" ")" ;
+   <fq-name>:: "(" "name" <principal> <names> ")" ;
+   <general-op>:: "(" "do" <byte-string> <s-part>* ")" ;
+   <gte>:: "g" | "ge" ;
+   <hash-alg-name>:: "md5" | "sha1" | <uri> ;
+   <hash-list>:: "(" "canceled" <hash>* ")" ;
+   <hash-of-crl>:: <hash> ;
+   <hash-of-key>:: <hash> ;
+   <hash-op>:: "(" "do" "hash" <hash-alg-name> ")" ;
+   <hash-value>:: <byte-string> ;
+   <hash>:: "(" "hash" <hash-alg-name> <hash-value> <uris>? ")" ;
+   <integer>:: <byte-string> ;
+   <issuer-loc>:: "(" "issuer-info" <uris> ")" ;
+   <issuer-name>:: "(" "issuer" "(" "name" <principal> <byte-string> ")"
+   ")" ;
+   <issuer5>:: <key5> | "self" ;
+   <issuer>:: "(" "issuer" <principal> ")" ;
+   <k-val>:: <integer> ;
+   <key5>:: <pub-key> ;
+   <keyholder-obj>:: <principal> | <name> ;
+   <keyholder>:: "(" "keyholder" <keyholder-obj> ")" ;
+   <low-lim>:: <gte> <byte-string> ;
+   <lte>:: "l" | "le" ;
+   <n-val>:: <integer> ;
+   <name-cert>:: "(" "cert" <version>? <cert-display>? <issuer-name>
+   <subject> <valid>? <comment>? ")" ;
+   <name>:: <relative-name> | <fq-name> ;
+   <names>:: <byte-string>+ ;
+   <not-after>:: "(" "not-after" <date> ")" ;
+   <not-before>:: "(" "not-before" <date> ")" ;
+   <nzddigit>:: "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+   <obj-hash>:: "(" "object-hash" <hash> ")" ;
+   <one-valid>:: "(" "one-time" <byte-string> ")" ;
+   <online-test>:: "(" "online" <online-type> <uris> <principal> <s-
+   part>* ")" ;
+   <online-type>:: "crl" | "reval" | "one-time" ;
+   <op>:: <hash-op> | <general-op> ;
+   <principal>:: <pub-key> | <hash-of-key> ;
+   <pub-key>:: "(" "public-key" "(" <pub-sig-alg-id> <s-expr>* ")"
+   <uris>? ")" ;
+   <pub-sig-alg-id>:: "rsa-pkcs1-md5" | "rsa-pkcs1-sha1" | "rsa-pkcs1" |
+   "dsa-sha1" | <uri> ;
+   <range-ordering>:: "alpha" | "numeric" | "time" | "binary" | "date" ;
+   <relative-name>:: "(" "name" <names> ")" ;
+   <reval-body>:: <one-valid> | <valid-basic> ;
+   <reval-hash-list>:: "(" "valid" <hash>+ ")" ;
+   <reval>:: "(" "reval" <version>? <reval-hash-list> <reval-body> ")" ;
+   <s-expr>:: "(" <byte-string> <s-part>* ")" ;
+   <s-part>:: <byte-string> | <s-expr> ;
+   <seq-ent>:: <cert> | <name-cert> | <pub-key> | <signature> | <op> |
+
+
+Ellison, et al.                                                [Page 41]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   <reval> | <crl> | <delta-crl> ;
+   <sequence>:: "(" "sequence" <seq-ent>* ")" ;
+   <sig-params>:: <byte-string> | <s-expr>+ ;
+   <sig-val>:: "(" <pub-sig-alg-id> <sig-params> ")" ;
+   <signature>:: "(" "signature" <hash> <principal> <sig-val> ")" ;
+   <simple-tag>:: "(" <byte-string> <tag-expr>* ")" ;
+   <subj-hash>:: "(" "cert" <hash> ")" ;
+   <subj-obj>:: <principal> | <name> | <obj-hash> | <keyholder> | <subj-
+   thresh> ;
+   <subj-thresh>:: "(" "k-of-n" <k-val> <n-val> <subj-obj>* ")" ;
+   <subject-loc>:: "(" "subject-info" <uris> ")" ;
+   <subject5>:: <key5> | <fq-name5> | <obj-hash> | <keyholder> | <subj-
+   thresh> ;
+   <subject>:: "(" "subject" <subj-obj> ")" ;
+   <tag-body5>:: <tag-expr> | "null" ;
+   <tag-expr>:: <simple-tag> | <tag-set> | <tag-string> ;
+   <tag-prefix>:: "(" "*" "prefix" <byte-string> ")" ;
+   <tag-range>:: "(" "*" "range" <range-ordering> <low-lim>? <up-lim>?
+   ")" ;
+   <tag-set>:: "(" "*" "set" <tag-expr>* ")" ;
+   <tag-star>:: "(" "tag" "(*)" ")" ;
+   <tag-string>:: <byte-string> | <tag-range> | <tag-prefix> ;
+   <tag>:: <tag-star> | "(" "tag" <tag-expr>  ")" ;
+   <up-lim>:: <lte> <byte-string> ;
+   <uri>:: <byte-string> ;
+   <uris>:: "(" "uri" <uri>+ ")" ;
+   <valid-basic>:: <not-before>? <not-after>? ;
+   <valid5>:: <valid-basic> | "null" | "now" ;
+   <valid>:: "(" "valid" <valid-basic> <online-test>* ")" ;
+   <version>:: "(" "version" <integer> ")" ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ellison, et al.                                                [Page 42]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+References
+
+   [Ab97] Abadi, Martin, "On SDSI's Linked Local Name Spaces",
+   Proceedings of the 10th IEEE Computer Security Foundations Workshop
+   (June 1997).
+
+   [BFL] Matt Blaze, Joan Feigenbaum and Jack Lacy, "Distributed Trust
+   Management", Proceedings 1996 IEEE Symposium on Security and Privacy.
+
+   [CHAUM] D. Chaum, "Blind Signatures for Untraceable Payments",
+   Advances in Cryptology -- CRYPTO '82, 1983.
+
+   [DvH] J. B. Dennis and E. C. Van Horn, "Programming Semantics for
+   Multiprogrammed Computations", Communications of the ACM 9(3), March
+   1966
+
+   [ECR] Silvio Micali, "Efficient Certificate Revocation", manuscript,
+   MIT LCS.
+
+   [HARDY] Hardy, Norman, "THE KeyKOS Architecture", Operating Systems
+   Review, v.19 n.4, October 1985. pp 8-25.
+
+   [IDENT] Carl Ellison, "Establishing Identity Without Certification
+   Authorities", USENIX Security Symposium, July 1996.
+
+   [IWG] McConnell and Appel, ``Enabling Privacy, Commerce, Security and
+   Public Safety in the Global Information Infrastructure'', report of
+   the Interagency Working Group on Cryptography Policy, May 12, 1996;
+   (quote from paragraph 5 of the Introduction)
+
+   [KEYKOS] Bomberger, Alan, et al., "The KeyKOS(r) Nanokernel
+   Architecture", Proceedings of the USENIX Workshop on Micro-Kernels
+   and Other Kernel Architectures, USENIX Association, April 1992. pp
+   95-112 (In addition, there are KeyKOS papers on the net available
+   through http://www.cis.upenn.edu/~KeyKOS/#bibliography)
+
+   [KOHNFELDER] Kohnfelder, Loren M., "Towards a Practical Public-key
+   Cryptosystem", MIT S.B. Thesis, May. 1978.
+
+   [LAMPSON] B. Lampson, M. Abadi, M. Burrows, and E. Wobber,
+   "Authentication in distributed systems: Theory and practice", ACM
+   Trans. Computer Systems 10, 4 (Nov.  1992), pp 265-310.
+
+   [LANDAU] Landau, Charles, "Security in a Secure Capability-Based
+   System", Operating Systems Review, Oct 1989 pp 2-4
+
+   [LEVY] Henry M. Levy, "Capability-Based Computer Systems", Digital
+   Press, 12 Crosby Dr., Bedford MA 01730, 1984
+
+   [LINDEN] T. A. Linden, "Operating System Structures to Support
+
+
+Ellison, et al.                                                [Page 43]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   Security and Reliable Software", Computing Surveys 8(4), December
+   1976.
+
+   [PKCS1] PKCS #1: RSA Encryption Standard, RSA Data Security, Inc., 3
+   June 1991, Version 1.4.
+
+   [PKLOGIN] David Kemp, "The Public Key Login Protocol", working draft,
+   06/12/1996.
+
+   [RFC1321] R. Rivest, "The MD5 Message-Digest Algorithm", April 16
+   1992.
+
+   [RFC1780] J. Postel, "Internet Official Protocol Standards", March
+   1995.
+
+   [RFC2045] N. Freed and N. Borenstein, "Multipurpose Internet Mail
+   Extensions (MIME) Part One: Format of Internet Message Bodies", Dec 2
+   1996.
+
+   [RFC2046] N. Freed and N. Borenstein, "Multipurpose Internet Mail
+   Extensions (MIME) Part Two: Media Types", Dec 2 1996.
+
+   [RFC2047] K. Moore, "MIME (Multipurpose Internet Mail Extensions)
+   Part Three: Message Header Extensions for Non-ASCII Text", Dec 2
+   1996.
+
+   [RFC2065] D. Eastlake and C. Kaufman, "Proposed Standard for DNS
+   Security", Jan 1997.
+
+   [RFC2104] H. Krawczyk, M. Bellare and R. Canetti, "HMAC: Keyed-
+   Hashing for Message Authentication", Feb 1997.
+
+   [SDSI] Ron Rivest and Butler Lampson, "SDSI - A Simple Distributed
+   Security Infrastructure [SDSI]",
+   http://theory.lcs.mit.edu/~cis/sdsi.html
+
+   [SEXP] Ron Rivest, code and description of S-expressions,
+   http://theory.lcs.mit.edu/~rivest/sexp.html .
+
+   [SRC-070] Abadi, Burrows, Lampson and Plotkin, "A Calculus for Access
+   Control in Distributed Systems", DEC SRC-070, revised August 28,
+   1991.
+
+
+
+
+
+
+
+
+
+
+Ellison, et al.                                                [Page 44]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+Acknowledgments
+
+   Several independent contributions, published elsewhere on the net or
+   in print, worked in synergy with our effort.  Especially important to
+   our work were: [SDSI], [BFL] and [RFC2065].  The inspiration we
+   received from the notion of CAPABILITY in its various forms (SDS-940,
+   Kerberos, DEC DSSA, [SRC-070], KeyKOS [HARDY]) can not be over-rated.
+
+   Significant contributions to this effort by the members of the SPKI
+   mailing list and especially the following persons (listed in
+   alphabetic order) are gratefully acknowledged: Steve Bellovin, Mark
+   Feldman, John Gilmore, Phill Hallam-Baker, Bob Jueneman, David Kemp,
+   Angelos D. Keromytis, Paul Lambert, Jon Lasser, Jeff Parrett, Bill
+   Sommerfeld, Simon Spero.
+
+
+
+
+Authors' Addresses
+
+   Carl M. Ellison
+   Intel Corporation
+   2111 NE 25th Ave   M/S JF3-373
+   Hillsboro OR 97124-5961 USA
+
+   Telephone:      +1-503-264-2900
+   FAX:            +1-503-264-6225
+   EMail:          carl.m.ellison@intel.com (work, Outlook)
+                   cme@jf.intel.com (work, Eudora)
+                   cme@alum.mit.edu, cme@acm.org (home, Eudora)
+   Web:            http://www.pobox.com/~cme
+
+
+   Bill Frantz
+   Electric Communities
+   10101 De Anza Blvd.
+   Cupertino CA 95014
+
+   Telephone:      +1 408-342-9576
+   Email:          frantz@netcom.com
+
+
+   Butler Lampson
+   Microsoft
+   180 Lake View Ave
+   Cambridge MA 02138
+
+   Telephone:      +1 617-547-9580 (voice + FAX)
+   EMail:          blampson@microsoft.com
+
+
+
+Ellison, et al.                                                [Page 45]
+
+INTERNET-DRAFT        Simple Public Key Certificate         26 July 1999
+
+
+   Ron Rivest
+   Room 324, MIT Laboratory for Computer Science
+   545 Technology Square
+   Cambridge MA 02139
+
+   Telephone:      +1-617-253-5880
+                   +1-617-258-9738(FAX)
+   Email:          rivest@theory.lcs.mit.edu
+   Web:            http://theory.lcs.mit.edu/~rivest
+
+
+   Brian Thomas
+   Southwestern Bell
+   One Bell Center, Room 23Q1
+   St. Louis MO 63101 USA
+
+   Telephone:      +1 314-235-3141
+                   +1 314-331-2755(FAX)
+   EMail:          bt0008@entropy.sbc.com
+
+
+   Tatu Ylonen
+   SSH Communications Security Ltd.
+   Tekniikantie 12
+   FIN-02150 ESPOO
+   Finland
+
+   E-mail:         ylo@ssh.fi
+
+
+
+
+Expiration and File Name
+
+   This draft expires 31 January 2000.
+
+   Its file name is draft-ietf-spki-cert-structure-06.txt
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ellison, et al.                                                [Page 46]

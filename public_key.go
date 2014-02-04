@@ -13,6 +13,7 @@ import (
 )
 
 type PublicKey struct {
+	HashKey
 	ecdsa.PublicKey
 }
 
@@ -21,7 +22,7 @@ type PublicKey struct {
 //    (public-key (ecdsa-sha2 (curve p256) (x |...|) (y |...|)))
 // The format of a 384-bit ECDSA public key is:
 //    (public-key (ecdsa-sha2 (curve p384) (x |...|) (y |...|)))
-// Neither RSA, DSA, NIST curves other than p256 & p34 nor non-NIST-curve 
+// Neither RSA, DSA, NIST curves other than p256 & p384 nor non-NIST-curve 
 // ECDSA keys are supported at this point in time.  In the future PublicKey
 // will likely be an interface.
 func EvalPublicKey(s sexprs.Sexp) (k *PublicKey, err error) {
@@ -54,6 +55,7 @@ func evalECDSAPublicKey(s sexprs.Sexp) (k *PublicKey, err error) {
 		}
 		return k, nil
 	case ecdsa384Atom.Equal(l[0]):
+		panic("p384 not yet supported")
 	default:
 		return nil, fmt.Errorf("ECDSA key S-expression must start with 'ecdsa-sha2'")
 	}
@@ -105,7 +107,7 @@ func evalCurve(l sexprs.Sexp) (curve string, err error) {
 	panic("Can't get here")
 }
 
-func (k PublicKey) Sexp() (s sexprs.Sexp) {
+func (k *PublicKey) Sexp() (s sexprs.Sexp) {
 	var curve sexprs.Atom
 	switch k.Curve {
 	case elliptic.P256():
@@ -132,5 +134,60 @@ func (k PublicKey) Sexp() (s sexprs.Sexp) {
 				sexprs.Atom{Value: k.Y.Bytes()},
 			},
 		},
+	}
+}
+
+func (k *PublicKey) Pack() ([]byte) {
+	return k.Sexp().Pack()
+}
+
+// Key methods
+
+// IsHash always returns false for a public key.
+func (k *PublicKey) IsHash() bool {
+	return false
+}
+
+// PublicKey returns the key itself.
+func (k *PublicKey) PublicKey() *PublicKey {
+	return &k
+}
+
+func (k *PublicKey) HashedExpr(algorithm string) (hash Hash, err error) {
+	hash, err = k.HashKey.HashedExpr(algorithm)
+	if err != nil {
+		return hash, nil
+	}
+	newHash, ok := KnownHashes[algorithm]
+	if !ok {
+		return hash, fmt.Errorf("Unknown hash algorithm %s", algorithm)
+	}
+	hasher := newHash()
+	_, err = hasher.Write(k.Pack())
+	if err != nil {
+		return hash, err
+	}
+	hash.Algorithm = algorithm
+	hash.Hash = hasher.Sum(nil)
+	return hash, nil
+}
+
+func (k *PublicKey) Hashed(algorithm string) ([]byte, error) {
+	hash, err := k.HashedExpr(algorithm)
+	return hash.Hash, err
+}
+
+func (k *PublicKey) SignatureAlgorithm() string {
+	return "ecdsa-sha2"
+}
+
+func (k *PublicKey) HashAlgorithm() string {
+	switch k.Curve {
+	case elliptic.P256():
+		return "p256"
+	case elliptic.P384():
+		return "p384"
+	default:
+		return ""
 	}
 }
