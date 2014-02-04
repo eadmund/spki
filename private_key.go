@@ -65,16 +65,16 @@ func (k *PrivateKey) IsHash() bool {
 // PublicKey returns the public key associated with k.
 func (k *PrivateKey) PublicKey() *PublicKey {
 	p := new(PublicKey)
-	p.Curve = k.Curve
-	p.X = k.X
-	p.Y = k.Y
+	p.Pk.Curve = k.Curve
+	p.Pk.X = k.X
+	p.Pk.Y = k.Y
 	return p
 }
 
-func (k *PrivateKey) HashedExpr(algorithm string) (hash Hash, err error) {
-	hash, err = k.HashKey.HashedExpr(algorithm)
+func (k *PrivateKey) HashExpr(algorithm string) (hash Hash, err error) {
+	hash, err = k.HashKey.HashExpr(algorithm)
 	if err != nil {
-		return hash, nil
+		return hash, err
 	}
 	newHash, ok := KnownHashes[algorithm]
 	if !ok {
@@ -91,7 +91,7 @@ func (k *PrivateKey) HashedExpr(algorithm string) (hash Hash, err error) {
 }
 
 func (k *PrivateKey) Hashed(algorithm string) ([]byte, error) {
-	hash, err := k.HashedExpr(algorithm)
+	hash, err := k.HashExpr(algorithm)
 	return hash.Hash, err
 }
 
@@ -100,14 +100,24 @@ func (k *PrivateKey) SignatureAlgorithm() string {
 }
 
 func (k *PrivateKey) HashAlgorithm() string {
+	return "sha2"
+}
+
+func (k *PrivateKey) SubjectSexp() (sexp sexprs.Sexp, err error) {
+	var algorithm string
 	switch k.Curve {
 	case elliptic.P256():
-		return "p256"
+		algorithm = "sha256"
 	case elliptic.P384():
-		return "p384"
+		algorithm = "sha384"
 	default:
-		return ""
+		return nil, fmt.Errorf("Unsupported curve")
 	}
+	hash, err := k.HashExpr(algorithm)
+	if err != nil {
+		return nil, err
+	}
+	return hash.Sexp(), err
 }
 
 func (k *PrivateKey) sign(h Hash) (sig *Signature, err error) {
@@ -115,8 +125,7 @@ func (k *PrivateKey) sign(h Hash) (sig *Signature, err error) {
 	if err != nil {
 		return nil, err
 	}
-	pk, _ := k.PublicKey()
-	return &Signature{Hash: h, Principal: pk, R: r, S: s}, nil
+	return &Signature{Hash: h, Principal: k.PublicKey(), R: r, S: s}, nil
 }
 
 func (k *PrivateKey) Sign(s sexprs.Sexp) (sig *Signature, err error) {

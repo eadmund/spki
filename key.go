@@ -71,3 +71,10 @@ func (h HashKey) SignatureAlgorithm() string {
 func (h HashKey) HashAlgorithm() string {
 	return ""
 }
+
+func (h HashKey) SubjectSexp() (sexprs.Sexp, error) {
+	if h.Hashes == nil || len(h.Hashes) == 0 {
+		return nil, nil
+	}
+	return h.Hashes[0].Sexp(), nil
+}

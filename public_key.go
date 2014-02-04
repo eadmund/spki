@@ -14,7 +14,7 @@ import (
 
 type PublicKey struct {
 	HashKey
-	ecdsa.PublicKey
+	Pk ecdsa.PublicKey
 }
 
 // EvalPublicKey converts the S-expression s to a PublicKey, or returns
@@ -70,17 +70,17 @@ func evalECDSA256PublicKeyTerms(l sexprs.List) (k *PublicKey, err error) {
 	}
 	switch curve {
 	case "p256":
-		k.Curve = elliptic.P256()
+		k.Pk.Curve = elliptic.P256()
 	case "p384":
-		k.Curve = elliptic.P384()
+		k.Pk.Curve = elliptic.P384()
 	default:
 		return nil, fmt.Errorf("Curve must be either 'p256' or 'p384'")
 	}
-	k.X, err = evalNamedBigInt("x", l[2])
+	k.Pk.X, err = evalNamedBigInt("x", l[2])
 	if err != nil {
 		return nil, err
 	}
-	k.Y, err = evalNamedBigInt("y", l[3])
+	k.Pk.Y, err = evalNamedBigInt("y", l[3])
 	if err != nil {
 		return nil, err
 	}
@@ -109,13 +109,13 @@ func evalCurve(l sexprs.Sexp) (curve string, err error) {
 
 func (k *PublicKey) Sexp() (s sexprs.Sexp) {
 	var curve sexprs.Atom
-	switch k.Curve {
+	switch k.Pk.Curve {
 	case elliptic.P256():
 		curve.Value = []byte("p256")
 	case elliptic.P384():
 		curve.Value = []byte("p384")
 	default:
-		panic(fmt.Sprintf("Bad curve value %v", k.Curve))
+		panic(fmt.Sprintf("Bad curve value %v", k.Pk.Curve))
 	}
 	return sexprs.List{
 		sexprs.Atom{Value: []byte("public-key")},
@@ -127,11 +127,11 @@ func (k *PublicKey) Sexp() (s sexprs.Sexp) {
 			},
 			sexprs.List{
 				sexprs.Atom{Value: []byte("x")},
-				sexprs.Atom{Value: k.X.Bytes()},
+				sexprs.Atom{Value: k.Pk.X.Bytes()},
 			},
 			sexprs.List{
 				sexprs.Atom{Value: []byte("y")},
-				sexprs.Atom{Value: k.Y.Bytes()},
+				sexprs.Atom{Value: k.Pk.Y.Bytes()},
 			},
 		},
 	}
@@ -150,11 +150,11 @@ func (k *PublicKey) IsHash() bool {
 
 // PublicKey returns the key itself.
 func (k *PublicKey) PublicKey() *PublicKey {
-	return &k
+	return k
 }
 
 func (k *PublicKey) HashedExpr(algorithm string) (hash Hash, err error) {
-	hash, err = k.HashKey.HashedExpr(algorithm)
+	hash, err = k.HashKey.HashExpr(algorithm)
 	if err != nil {
 		return hash, nil
 	}
@@ -182,7 +182,7 @@ func (k *PublicKey) SignatureAlgorithm() string {
 }
 
 func (k *PublicKey) HashAlgorithm() string {
-	switch k.Curve {
+	switch k.Pk.Curve {
 	case elliptic.P256():
 		return "p256"
 	case elliptic.P384():

@@ -87,6 +87,11 @@ func validHash(b []byte) bool {
 	return ok
 }
 
+// A Hash may be used as the subject of a certificate
+func (h Hash) SubjectSexp() sexprs.Sexp {
+	return h.Sexp()
+}
+
 func init() {
 	KnownHashes["sha256"] = sha256.New
 	KnownHashes["sha224"] = sha256.New224
