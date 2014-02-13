@@ -103,7 +103,7 @@ func (k *PrivateKey) HashAlgorithm() string {
 	return "sha2"
 }
 
-func (k *PrivateKey) SubjectSexp() (sexp sexprs.Sexp, err error) {
+func (k *PrivateKey) ToSubject() (sexp sexprs.Sexp, err error) {
 	var algorithm string
 	switch k.Curve {
 	case elliptic.P256():

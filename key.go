@@ -72,9 +72,11 @@ func (h HashKey) HashAlgorithm() string {
 	return ""
 }
 
-func (h HashKey) SubjectSexp() (sexprs.Sexp, error) {
+// BUG(eadmund): rather than returning the first stored hash, return
+// the 'best' for some value of.
+func (h HashKey) ToSubject() (sexprs.Sexp, error) {
 	if h.Hashes == nil || len(h.Hashes) == 0 {
-		return nil, nil
+		return nil, fmt.Errorf("HashKey/ToSubject: No hash found")
 	}
 	return h.Hashes[0].Sexp(), nil
 }
