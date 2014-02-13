@@ -10,7 +10,6 @@ import (
 )
 
 type Key interface {
-	sexprs.Sexp
 	// Returns true if the key is just a hash.
 	IsHash() bool
 	// Returns the public key for the key: the key itself, if it's
@@ -24,13 +23,14 @@ type Key interface {
 	Hashed(algorithm string) ([]byte, error)
 	// Returns the hash value of the key as per Hashed, but as a
 	// Hash object.
-	HashedExpr(algorithm string) (Hash, error)
+	HashExp(algorithm string) (Hash, error)
 	// Returns the SPKI signature algorithm of the key,
 	// e.g. "ecdsa-sha256".  May be the empty string if unknown.
 	SignatureAlgorithm() string
 	// Returns the SPKI hash algorithm the key uses in signing,
 	// e.g. "sha256".  May be the empty string if unknown.
 	HashAlgorithm() string
+	Equal(Key) bool
 }
 
 // A HashKey is just the hash value(s) of a key, without any public or
@@ -49,11 +49,11 @@ func (h HashKey) PublicKey() *PublicKey {
 }
 
 func (h HashKey) Hashed(algorithm string) ([]byte, error) {
-	hash, err := h.HashExpr(algorithm)
+	hash, err := h.HashExp(algorithm)
 	return hash.Hash, err
 }
 
-func (h HashKey) HashExpr(algorithm string) (hh Hash, err error) {
+func (h HashKey) HashExp(algorithm string) (hh Hash, err error) {
 	for _, hash := range h.Hashes {
 		if hash.Algorithm == algorithm {
 			return hash, nil
@@ -74,9 +74,23 @@ func (h HashKey) HashAlgorithm() string {
 
 // BUG(eadmund): rather than returning the first stored hash, return
 // the 'best' for some value of.
-func (h HashKey) ToSubject() (sexprs.Sexp, error) {
+func (h HashKey) Subject() (sexprs.Sexp, error) {
 	if h.Hashes == nil || len(h.Hashes) == 0 {
 		return nil, fmt.Errorf("HashKey/ToSubject: No hash found")
 	}
 	return h.Hashes[0].Sexp(), nil
+}
+
+func (h HashKey) Equal(k Key) bool {
+	if k == nil {
+		return false
+	}
+	for _, hash1 := range h.Hashes {
+		// can never return an error because we know algorithm is good
+		hash2, _ := k.HashExp(hash1.Algorithm)
+		if hash1.Equal(hash2) {
+			return true
+		}
+	}
+	return false
 }

@@ -153,8 +153,8 @@ func (k *PublicKey) PublicKey() *PublicKey {
 	return k
 }
 
-func (k *PublicKey) HashedExpr(algorithm string) (hash Hash, err error) {
-	hash, err = k.HashKey.HashExpr(algorithm)
+func (k *PublicKey) HashExp(algorithm string) (hash Hash, err error) {
+	hash, err = k.HashKey.HashExp(algorithm)
 	if err != nil {
 		return hash, nil
 	}
@@ -173,7 +173,7 @@ func (k *PublicKey) HashedExpr(algorithm string) (hash Hash, err error) {
 }
 
 func (k *PublicKey) Hashed(algorithm string) ([]byte, error) {
-	hash, err := k.HashedExpr(algorithm)
+	hash, err := k.HashExp(algorithm)
 	return hash.Hash, err
 }
 

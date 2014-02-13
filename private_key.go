@@ -71,8 +71,8 @@ func (k *PrivateKey) PublicKey() *PublicKey {
 	return p
 }
 
-func (k *PrivateKey) HashExpr(algorithm string) (hash Hash, err error) {
-	hash, err = k.HashKey.HashExpr(algorithm)
+func (k *PrivateKey) HashExp(algorithm string) (hash Hash, err error) {
+	hash, err = k.HashKey.HashExp(algorithm)
 	if err != nil {
 		return hash, err
 	}
@@ -91,7 +91,7 @@ func (k *PrivateKey) HashExpr(algorithm string) (hash Hash, err error) {
 }
 
 func (k *PrivateKey) Hashed(algorithm string) ([]byte, error) {
-	hash, err := k.HashExpr(algorithm)
+	hash, err := k.HashExp(algorithm)
 	return hash.Hash, err
 }
 
@@ -103,7 +103,22 @@ func (k *PrivateKey) HashAlgorithm() string {
 	return "sha2"
 }
 
-func (k *PrivateKey) ToSubject() (sexp sexprs.Sexp, err error) {
+func (k *PrivateKey) Equal(k2 Key) bool {
+	if k2 == nil {
+		return false
+	}
+	for algorithm, _ := range KnownHashes {
+		// we know that HashExp cannot fail because the algorithms will be correct
+		hash1, _ := k.HashExp(algorithm)
+		hash2, _ := k2.HashExp(algorithm)
+		if hash1.Equal(hash2) {
+			return true
+		}
+	}
+	return false
+}
+
+func (k *PrivateKey) Subject() (sexp sexprs.Sexp, err error) {
 	var algorithm string
 	switch k.Curve {
 	case elliptic.P256():
@@ -113,7 +128,7 @@ func (k *PrivateKey) ToSubject() (sexp sexprs.Sexp, err error) {
 	default:
 		return nil, fmt.Errorf("Unsupported curve")
 	}
-	hash, err := k.HashExpr(algorithm)
+	hash, err := k.HashExp(algorithm)
 	if err != nil {
 		return nil, err
 	}
