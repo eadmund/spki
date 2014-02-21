@@ -191,3 +191,33 @@ func (k *PublicKey) HashAlgorithm() string {
 		return ""
 	}
 }
+
+func (k *PublicKey) String() string {
+	return k.Sexp().String()
+}
+
+func (k *PublicKey) Equal(k2 Key) bool {
+	if k == nil {
+		return false
+	}
+	for _, h := range k.Hashes {
+		h2, err := k2.HashExp(h.Algorithm)
+		if err != nil {
+			continue
+		}
+		if h.Equal(h2) {
+			return true
+		}
+	}
+	return k.Sexp().Equal(k2.Sexp())
+}
+
+// Subject always returns the 'natural' hash of k, i.e. a hash with an
+// appropriate length.
+func (k *PublicKey) Subject() sexprs.Sexp {
+	hash, err := k.HashExp(k.HashAlgorithm())
+	if err != nil {
+		return nil
+	}
+	return sexprs.List{sexprs.Atom{Value: []byte("subject")}, hash.Sexp()}
+}

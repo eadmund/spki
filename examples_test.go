@@ -8,14 +8,14 @@ import (
 )
 
 func TestGeneratePrivateKey(t *testing.T ) {
-	_, err := spki.GeneratePrivateKey("ecdsa-sha2 (curve p256)")
+	_, err := spki.GeneratePrivateKey("(ecdsa-sha2 (curve p256))")
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func Example_PrivateKey() {
-	key, err := spki.GeneratePrivateKey("ecdsa-sha2 (curve p256)")
+	key, err := spki.GeneratePrivateKey("(ecdsa-sha2 (curve p256))")
 	if err != nil {
 		panic(err)
 	}

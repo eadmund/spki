@@ -13,5 +13,5 @@ type Subject interface {
 	// subject object of a certificate, e.g. the hash expression
 	// in "(subject (hash sha256
 	// |5v5x48LHmVtW1du0iMqdgK+v6/oybSBU/NCYne0XCMw=|))".
-	Subject() (sexprs.Sexp, error)
+	Subject() sexprs.Sexp
 }

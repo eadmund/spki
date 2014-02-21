@@ -64,6 +64,9 @@ func (k *PrivateKey) IsHash() bool {
 
 // PublicKey returns the public key associated with k.
 func (k *PrivateKey) PublicKey() *PublicKey {
+	if k == nil {
+		return nil
+	}
 	p := new(PublicKey)
 	p.Pk.Curve = k.Curve
 	p.Pk.X = k.X
@@ -81,7 +84,7 @@ func (k *PrivateKey) HashExp(algorithm string) (hash Hash, err error) {
 		return hash, fmt.Errorf("Unknown hash algorithm %s", algorithm)
 	}
 	hasher := newHash()
-	_, err = hasher.Write(k.Pack())
+	_, err = hasher.Write(k.PublicKey().Pack())
 	if err != nil {
 		return hash, err
 	}
@@ -118,7 +121,7 @@ func (k *PrivateKey) Equal(k2 Key) bool {
 	return false
 }
 
-func (k *PrivateKey) Subject() (sexp sexprs.Sexp, err error) {
+func (k *PrivateKey) Subject() (sexp sexprs.Sexp) {
 	var algorithm string
 	switch k.Curve {
 	case elliptic.P256():
@@ -126,13 +129,13 @@ func (k *PrivateKey) Subject() (sexp sexprs.Sexp, err error) {
 	case elliptic.P384():
 		algorithm = "sha384"
 	default:
-		return nil, fmt.Errorf("Unsupported curve")
+		return nil
 	}
 	hash, err := k.HashExp(algorithm)
 	if err != nil {
-		return nil, err
+		return nil
 	}
-	return hash.Sexp(), err
+	return hash.Subject()
 }
 
 func (k *PrivateKey) sign(h Hash) (sig *Signature, err error) {
@@ -247,7 +250,7 @@ func evalECDSASHA2PrivateKeyTerms(l sexprs.List) (k PrivateKey, err error) {
 // algorithm is unknown.
 func GeneratePrivateKey(algorithm string) (k *PrivateKey, err error) {
 	switch algorithm {
-	case "ecdsa-sha2 (curve p256)":
+	case "(ecdsa-sha2 (curve p256))":
 		return GenerateP256Key()
 	default:
 		return nil, fmt.Errorf("Unknown algorithm '%s'", algorithm)
@@ -262,4 +265,14 @@ func GenerateP256Key() (k *PrivateKey, err error) {
 	// BUG(eadmund): zeroise kk afterwards
 	k = &PrivateKey{HashKey{}, *kk}
 	return k, nil
+}
+
+func (k *PrivateKey) IssueAuthCert(publicKey *PublicKey, tag sexprs.Sexp, validity Valid) (c AuthCert) {
+	c.Issuer = Name{Principal: k.PublicKey()}
+	c.Subject = publicKey
+	c.Delegate = true
+	c.Valid = &Valid{}
+	*c.Valid = validity
+	c.Tag = tag
+	return
 }

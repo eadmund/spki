@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"github.com/eadmund/sexprs"
 	"testing"
+	"time"
 )
 
 func TestHash(t *testing.T) {
@@ -88,20 +89,50 @@ func TestECDSASHA2PrivateKey(t *testing.T) {
 }
 
 func TestGeneratePrivateKey(t *testing.T ) {
-	_, err := GeneratePrivateKey("ecdsa-sha2 (curve p256)")
+	_, err := GeneratePrivateKey("(ecdsa-sha2 (curve p256))")
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestSignature(t *testing.T) {
-	key, err := GeneratePrivateKey("ecdsa-sha2 (curve p256)")
+	key, err := GeneratePrivateKey("(ecdsa-sha2 (curve p256))")
 	if err != nil {
 		t.Fatal(err)
 	}
-	sig, err := key.Sign(key.Sexp())
+	_, err = key.Sign(key.Sexp())
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(sig.String())
+	// BUG(eadmund): verify signature
+}
+
+func TestPrivateKey_IssueAuthCert(t *testing.T) {
+	key, err := GeneratePrivateKey("(ecdsa-sha2 (curve p256))")
+	if err != nil {
+		t.Error(err)
+	}
+	publicKey := key.PublicKey()
+	tag, _, err := sexprs.Parse([]byte("(dns (* prefix com.example.))"))
+	if err != nil {
+		t.Error(err)
+	}
+	notBefore := time.Date(2014, time.January, 1, 0, 0, 0, 0, time.UTC)
+	notAfter := time.Date(2014, time.December, 31, 23, 59, 59, 0, time.UTC)
+	validity := Valid{NotBefore: &notBefore, NotAfter:  &notAfter}
+	cert := key.IssueAuthCert(publicKey, tag, validity)
+	issuer := Name{Principal: key.PublicKey()}
+	if !cert.Issuer.Equal(issuer) {
+		t.Error("Auth certificate issuer is in error", cert.Issuer, issuer)
+	}
+	t.Log(publicKey.Subject())
+	if !cert.Subject.Subject().Equal(publicKey.Subject()) {
+		t.Error("Auth certificate subject is in error", cert.Subject.Subject(), publicKey.Subject())
+	}
+	if !cert.Tag.Equal(tag) {
+		t.Error("Auth certificate tag is in error", cert.Tag, tag)
+	}
+	if !cert.Valid.Sexp().Equal(validity.Sexp()) {
+		t.Error("Auth certificate validity is in error", cert.Valid, validity)
+	}
 }

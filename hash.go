@@ -88,8 +88,9 @@ func validHash(b []byte) bool {
 }
 
 // A Hash may be used as the subject of a certificate
-func (h Hash) SubjectSexp() sexprs.Sexp {
-	return h.Sexp()
+func (h Hash) Subject() sexprs.Sexp {
+	fmt.Println("subject for", h)
+	return sexprs.List{sexprs.Atom{Value: []byte("subject")}, h.Sexp()}
 }
 
 func init() {

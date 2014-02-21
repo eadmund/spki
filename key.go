@@ -31,6 +31,8 @@ type Key interface {
 	// e.g. "sha256".  May be the empty string if unknown.
 	HashAlgorithm() string
 	Equal(Key) bool
+	Sexp() sexprs.Sexp
+	String() string
 }
 
 // A HashKey is just the hash value(s) of a key, without any public or
@@ -51,6 +53,13 @@ func (h HashKey) PublicKey() *PublicKey {
 func (h HashKey) Hashed(algorithm string) ([]byte, error) {
 	hash, err := h.HashExp(algorithm)
 	return hash.Hash, err
+}
+
+func (h HashKey) String() string {
+	if len(h.Hashes) == 0 {
+		return ""
+	}
+	return h.Hashes[0].String()
 }
 
 func (h HashKey) HashExp(algorithm string) (hh Hash, err error) {
@@ -74,20 +83,23 @@ func (h HashKey) HashAlgorithm() string {
 
 // BUG(eadmund): rather than returning the first stored hash, return
 // the 'best' for some value of.
-func (h HashKey) Subject() (sexprs.Sexp, error) {
+func (h HashKey) Subject() sexprs.Sexp {
 	if h.Hashes == nil || len(h.Hashes) == 0 {
-		return nil, fmt.Errorf("HashKey/ToSubject: No hash found")
+		return nil
 	}
-	return h.Hashes[0].Sexp(), nil
+	return sexprs.List{sexprs.Atom{Value: []byte("subject")}, h.Hashes[0].Sexp()}
 }
 
 func (h HashKey) Equal(k Key) bool {
+	fmt.Println("hashkey", h.String(), fmt.Sprintf("%#v", h), "key", k.String())
 	if k == nil {
 		return false
 	}
 	for _, hash1 := range h.Hashes {
 		// can never return an error because we know algorithm is good
+		fmt.Println(")", hash1.String())
 		hash2, _ := k.HashExp(hash1.Algorithm)
+		fmt.Println(">", hash2.String())
 		if hash1.Equal(hash2) {
 			return true
 		}

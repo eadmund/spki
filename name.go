@@ -1,8 +1,12 @@
 package spki
 
+import (
+	"github.com/eadmund/sexprs"
+)
+
 // A Name represents local & extended SPKI names, as well as simple
 // principals which are just a key.  A local name will have one name
-// in Names; an extenedd name will have multiple names.  A simple
+// in Names; an extended name will have multiple names.  A simple
 // principal will have Principal but no Names.
 type Name struct {
 	Principal Key
@@ -46,4 +50,43 @@ func (n *Name) IsPrefix(n2 *Name) bool {
 		}
 	}
 	return true
+}
+
+func (n *Name) Sexp() sexprs.Sexp {
+	if n == nil {
+		return nil
+	}
+	var issuerSexp sexprs.Sexp
+	if n.Principal != nil {
+		issuerSexp = n.Principal.Sexp()
+	} else {
+		issuerSexp = sexprs.Atom{Value: []byte("Self")}
+	}
+	if len(n.Names) == 0 {
+		return issuerSexp
+	}
+	var names sexprs.List
+	for _, name := range n.Names {
+		names = append(names, sexprs.Atom{Value: []byte(name)})
+	}
+	return append(sexprs.List{sexprs.Atom{Value: []byte("name")}, issuerSexp}, names...)
+}
+
+func (n *Name) Equal(n2 Name) bool {
+	switch {
+	case n == nil:
+		return false
+	case !n.Principal.Equal(n2.Principal):
+		return false
+	}
+	for i, name := range n.Names {
+		if i >= len(n2.Names) || name != n2.Names[i] {
+			return false
+		}
+	}
+	return len(n.Names) == len(n2.Names)
+}
+
+func (n *Name) String() string {
+	return n.Sexp().String()
 }
