@@ -25,7 +25,7 @@ Sign the certificate:
     
 Generate an SPKI sequence containing the cert and the signature:
 
-    sequence := spki.MakeSequence(cert, sig)
+    sequence := Sequence{cert, sig}
     
 Return the canonical S-expression for sequence:
 

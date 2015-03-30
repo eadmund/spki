@@ -7,7 +7,8 @@ import (
 type Cert interface {
 	Sexp() sexprs.Sexp
 	String() string
-	// Same as Sexp
+	// above same as Sexp
 	Certificate() sexprs.Sexp
+	SequenceElement() sexprs.Sexp // every Certificate must be a SequenceElement
 }
 

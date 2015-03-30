@@ -125,7 +125,6 @@ func TestPrivateKey_IssueAuthCert(t *testing.T) {
 	if !cert.Issuer.Equal(issuer) {
 		t.Error("Auth certificate issuer is in error", cert.Issuer, issuer)
 	}
-	t.Log(publicKey.Subject())
 	if !cert.Subject.Subject().Equal(publicKey.Subject()) {
 		t.Error("Auth certificate subject is in error", cert.Subject.Subject(), publicKey.Subject())
 	}
@@ -135,4 +134,8 @@ func TestPrivateKey_IssueAuthCert(t *testing.T) {
 	if !cert.Valid.Sexp().Equal(validity.Sexp()) {
 		t.Error("Auth certificate validity is in error", cert.Valid, validity)
 	}
+	sig, err := key.Sign(key.Sexp()); if err != nil {
+		t.Fatal(err)
+	}
+	_ = Sequence{cert, sig}
 }

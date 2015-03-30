@@ -13,14 +13,12 @@ type AuthCert struct {
 	Tag sexprs.Sexp
 }
 
-func (a *AuthCert) Certificate() sexprs.Sexp {
+func (a AuthCert) Certificate() sexprs.Sexp {
 	return a.Sexp()
 }
 
-func (a *AuthCert) Sexp() sexprs.Sexp {
+func (a AuthCert) Sexp() sexprs.Sexp {
 	switch {
-	case a == nil:
-		return nil
 	case a.Expr != nil:
 		return a.Expr
 	}
@@ -43,4 +41,8 @@ func (a *AuthCert) Sexp() sexprs.Sexp {
 		s = append(s, vs)
 	}
 	return s
+}
+
+func (a AuthCert) String() string {
+	return a.Sexp().String()
 }
