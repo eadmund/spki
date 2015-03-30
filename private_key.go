@@ -246,7 +246,7 @@ func evalECDSASHA2PrivateKeyTerms(l sexprs.List) (k PrivateKey, err error) {
 // BUG(eadmund): parse algorithm as a canonical s-expression
 
 // GeneratePrivateKey generates a new private key as specified by
-// algorithm, e.g. "ecdsa-sha2 (curve p256)".  Returns an error if the
+// algorithm, e.g. "(ecdsa-sha2 (curve p256))".  Returns an error if the
 // algorithm is unknown.
 func GeneratePrivateKey(algorithm string) (k *PrivateKey, err error) {
 	switch algorithm {
