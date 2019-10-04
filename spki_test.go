@@ -78,13 +78,13 @@ func TestECDSASHA2PrivateKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	if key.X.Cmp(eval_key.X) != 0 {
-		t.Fatal("Differing X: %s vs. %x", key.X, eval_key.X)
+		t.Fatalf("Differing X: %x vs. %x", key.X, eval_key.X)
 	}
 	if key.Y.Cmp(eval_key.Y) != 0 {
-		t.Fatal("Differing X: %s vs. %x", key.Y, eval_key.Y)
+		t.Fatalf("Differing X: %x vs. %x", key.Y, eval_key.Y)
 	}
 	if key.D.Cmp(eval_key.D) != 0 {
-		t.Fatal("Differing X: %s vs. %x", key.D, eval_key.D)
+		t.Fatalf("Differing X: %x vs. %x", key.D, eval_key.D)
 	}
 }
 
